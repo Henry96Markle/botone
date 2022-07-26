@@ -1,1 +1,1 @@
-wbe: bin/botone
+web: bin/botone
