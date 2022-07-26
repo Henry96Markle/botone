@@ -79,7 +79,7 @@ func init() {
 		Poller: &tele.Webhook{
 			Endpoint:       &tele.WebhookEndpoint{PublicURL: "https://botone-bot.herokuapp.com/"},
 			AllowedUpdates: []string{"callback_query", "message"},
-			Listen:         ":8888"},
+			Listen:         ":" + os.Getenv("PORT")},
 		Verbose: true,
 	}
 
