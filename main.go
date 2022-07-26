@@ -19,6 +19,8 @@ type Configuration struct {
 	BotToken         string `json:"bot_token"`
 	OwnerTelegramID  int64  `json:"owner_telegram_id"`
 	ConnectionString string `json:"connection_string"`
+	LogChannelID     int64  `json:"log_channel_id"`
+	LoggingToChannel bool   `json:"logging_to_channel"`
 }
 
 const (
@@ -36,6 +38,18 @@ var (
 	TermSig chan os.Signal
 )
 
+func ChanLog(input string) {
+	if Bot != nil && Config.LoggingToChannel {
+		Bot.Send(&tele.Chat{ID: Config.LogChannelID}, input)
+	}
+}
+
+func ChanLogf(format string, a ...any) {
+	if Bot != nil && Config.LoggingToChannel {
+		Bot.Send(&tele.Chat{ID: Config.LogChannelID}, fmt.Sprintf(format, a...))
+	}
+}
+
 func init() {
 	TermSig = make(chan os.Signal, 1)
 	signal.Notify(TermSig, syscall.SIGINT, syscall.SIGTERM)
@@ -52,14 +66,28 @@ func init() {
 
 	owner_id, owner_err := strconv.ParseInt(os.Getenv("OWNER"), 0, 64)
 
+	chan_id, chan_err := strconv.ParseInt(os.Getenv("LOG_CHANNEL_ID"), 0, 64)
+
 	if owner_err != nil {
-		log.Fatalf("error parsing ID: %v\n", owner_err)
+		log.Fatalf("FATAL: error parsing owner ID: %v\n", owner_err)
+	}
+
+	if chan_err != nil {
+		log.Fatalf("FATAL: error parsing log channel ID: %v\n", chan_err)
+	}
+
+	doLog, bool_err := strconv.ParseBool(os.Getenv("LOGGING_TO_CHANNEL"))
+
+	if bool_err != nil {
+		log.Fatalf("FATAL: failed to parse bool: %v\n", bool_err)
 	}
 
 	Config = &Configuration{
 		OwnerTelegramID:  owner_id,
 		BotToken:         os.Getenv("TOKEN"),
 		ConnectionString: os.Getenv("CONNECTION_STRING"),
+		LoggingToChannel: doLog,
+		LogChannelID:     chan_id,
 	}
 
 	// Connect to database
@@ -154,7 +182,7 @@ func main() {
 
 	group.Add(1)
 	go func(group *sync.WaitGroup, channel <-chan bool) {
-		ticker := time.NewTicker(3 * time.Minute)
+		ticker := time.NewTicker(30 * time.Minute)
 
 	loop:
 		for {
