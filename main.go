@@ -1,7 +1,6 @@
 package main
 
 import (
-	"bufio"
 	"fmt"
 	"log"
 	"os"
@@ -10,6 +9,7 @@ import (
 	"strings"
 	"sync"
 	"syscall"
+	"time"
 
 	"github.com/joho/godotenv"
 	tele "gopkg.in/telebot.v3"
@@ -35,30 +35,6 @@ var (
 
 	TermSig chan os.Signal
 )
-
-// Does cleanup work before on termination.
-func Termination(doLog bool) {
-	// Close the bot
-
-	Bot.RemoveWebhook()
-
-	if doLog {
-		log.Println("closing bot..")
-	}
-
-	Bot.Stop()
-	Bot.Close()
-
-	// Disconnect from database
-
-	if doLog {
-		log.Println("disconnecting from database..")
-	}
-
-	if Data != nil {
-		Data.Disconnect()
-	}
-}
 
 func init() {
 	TermSig = make(chan os.Signal, 1)
@@ -163,13 +139,7 @@ func init() {
 }
 
 func main() {
-	log.Println("program has started.")
-	defer println("Program has ended.")
-
 	var group sync.WaitGroup
-	defer group.Wait()
-
-	defer Termination(true)
 
 	// Start bot
 
@@ -180,45 +150,37 @@ func main() {
 		group.Done()
 	}(&group)
 
-	// Start command line interface
+	log_term := make(chan bool, 2)
 
-	scanner := bufio.NewScanner(os.Stdin)
+	group.Add(1)
+	go func(group *sync.WaitGroup, channel <-chan bool) {
+		ticker := time.NewTicker(3 * time.Minute)
 
-scan:
-	for {
-
-		select {
-		case <-TermSig:
-			log.Println("recieved termination signal.")
-			break scan
-		default:
-			println("Command:")
-			res := scanner.Scan()
-
-			if !res {
-				continue scan
-			}
-
-			text := scanner.Text()
-			splt := strings.Split(text, " ")
-
-			switch splt[0] {
-			case "exit", "quit", "shutdown":
-				log.Println("shutting down..")
-				break scan
-
-			case "set":
-				// variable := ""
-				// value := ""
-
-				// if len(splt) > 2 {
-				// 	variable = splt[1]
-				// 	value = splt[2]
-				// } else {
-				// 	println("needs value")
-				// 	continue
-				// }
+	loop:
+		for {
+			select {
+			case <-ticker.C:
+				log.Println("listening..")
+			case <-channel:
+				break loop
 			}
 		}
-	}
+
+		group.Done()
+	}(&group, log_term)
+
+	<-TermSig
+
+	log.Println("terminating bot..")
+
+	Bot.Stop()
+	Bot.Close()
+
+	log.Println("disconnecting..")
+
+	Data.Disconnect()
+
+	group.Wait()
+
+	log.Println("Program has ended.")
 }
