@@ -1,0 +1,224 @@
+package main
+
+import (
+	"bufio"
+	"fmt"
+	"log"
+	"os"
+	"os/signal"
+	"strconv"
+	"strings"
+	"sync"
+	"syscall"
+
+	"github.com/joho/godotenv"
+	tele "gopkg.in/telebot.v3"
+)
+
+type Configuration struct {
+	BotToken         string `json:"bot_token"`
+	OwnerTelegramID  int64  `json:"owner_telegram_id"`
+	ConnectionString string `json:"connection_string"`
+}
+
+const (
+	DATABASE_NAME   = "telegram"
+	COLLECTION_NAME = "user-records"
+)
+
+var (
+	Config *Configuration
+
+	Bot *tele.Bot
+
+	Data *Database
+
+	TermSig chan os.Signal
+)
+
+// Does cleanup work before on termination.
+func Termination(doLog bool) {
+	// Close the bot
+
+	Bot.RemoveWebhook()
+
+	if doLog {
+		log.Println("closing bot..")
+	}
+
+	Bot.Stop()
+	Bot.Close()
+
+	// Disconnect from database
+
+	if doLog {
+		log.Println("disconnecting from database..")
+	}
+
+	if Data != nil {
+		Data.Disconnect()
+	}
+}
+
+func init() {
+	TermSig = make(chan os.Signal, 1)
+	signal.Notify(TermSig, syscall.SIGINT, syscall.SIGTERM)
+
+	println("Initializing..")
+
+	// Get configuration
+
+	env_err := godotenv.Load("config.env")
+
+	if env_err != nil {
+		log.Fatalf("error loading configuration: %v\n", env_err)
+	}
+
+	owner_id, owner_err := strconv.ParseInt(os.Getenv("OWNER"), 0, 64)
+
+	if owner_err != nil {
+		log.Fatalf("error parsing ID: %v\n", owner_err)
+	}
+
+	Config = &Configuration{
+		OwnerTelegramID:  owner_id,
+		BotToken:         os.Getenv("TOKEN"),
+		ConnectionString: os.Getenv("CONNECTION_STRING"),
+	}
+
+	// Connect to database
+
+	d, d_err := NewDatabase(Config.ConnectionString, DATABASE_NAME, COLLECTION_NAME)
+
+	if d_err != nil {
+		panic(fmt.Errorf("error when connectiong to database: %w", d_err))
+	}
+
+	Data = d
+
+	// Initialize bot
+
+	pref := tele.Settings{
+		Token: Config.BotToken,
+		Poller: &tele.Webhook{
+			Endpoint:       &tele.WebhookEndpoint{PublicURL: "https://botone-bot.herokuapp.com/"},
+			AllowedUpdates: []string{"callback_query", "message"},
+			Listen:         ":8888"},
+		Verbose: true,
+	}
+
+	b, b_err := tele.NewBot(pref)
+
+	if b_err != nil {
+		log.Fatalf("FATAL: error creating initializing bot: %v\n", b_err)
+		return
+	}
+
+	Bot = b
+
+	Bot.Use(func(hf tele.HandlerFunc) tele.HandlerFunc {
+		return func(ctx tele.Context) error {
+			toCheck := ""
+
+			if ctx.Callback() != nil {
+				toCheck = ctx.Callback().Unique
+			} else {
+				toCheck = strings.TrimLeft(strings.Split(ctx.Text(), " ")[0], "/")
+			}
+
+			usr, err := Data.FindByID(ctx.Sender().ID)
+			per, ok := Permissions[toCheck]
+
+			if ctx.Sender().ID == Config.OwnerTelegramID || err == nil && ok && usr.Permission >= per {
+				return hf(ctx)
+			} else {
+				if ctx.Callback() != nil {
+					return ctx.Respond(&tele.CallbackResponse{Text: "You're unauthorized to perform this action"})
+				} else {
+					return nil
+				}
+			}
+		}
+	})
+
+	//Bot.Handle(tele.OnQuery, QueryHandler) // <- Not working
+
+	Bot.Handle("/"+CMD_SET, SetHandler)
+	Bot.Handle("/"+CMD_REG, RegHandler)
+	Bot.Handle("/"+CMD_HELP, HelpHandler)
+	Bot.Handle("/"+CMD_ALIAS, AliasHandler)
+	Bot.Handle("/"+CMD_UNREG, UnregHandler)
+	Bot.Handle("/"+CMD_RECALL, RecallHandler)
+	Bot.Handle("/"+CMD_RECORD, RecordHandler)
+	Bot.Handle("/"+CMD_CREDITS, CreditsHandler)
+
+	Bot.Handle(SetHelpBtn, SetHelpBtnHandler)
+	Bot.Handle(RegHelpBtn, RegHelpBtnHandler)
+	Bot.Handle(UnregHelpBtn, UnregHelpBtnHandler)
+	Bot.Handle(AliasHelpBtn, AliasHelpBtnHandler)
+	Bot.Handle(RecordHelpBtn, RecordHelpBtnHandler)
+	Bot.Handle(RecallHelpBtn, RecallHelpBtnHandler)
+	Bot.Handle(BackToHelpBtn, BackToHelpBtnHandler)
+	Bot.Handle(UploadResultBtn, UploadResultBtnHandler)
+}
+
+func main() {
+	log.Println("program has started.")
+	defer println("Program has ended.")
+
+	var group sync.WaitGroup
+	defer group.Wait()
+
+	defer Termination(true)
+
+	// Start bot
+
+	group.Add(1)
+	go func(group *sync.WaitGroup) {
+		Bot.Start()
+
+		group.Done()
+	}(&group)
+
+	// Start command line interface
+
+	scanner := bufio.NewScanner(os.Stdin)
+
+scan:
+	for {
+
+		select {
+		case <-TermSig:
+			log.Println("recieved termination signal.")
+			break scan
+		default:
+			println("Command:")
+			res := scanner.Scan()
+
+			if !res {
+				continue scan
+			}
+
+			text := scanner.Text()
+			splt := strings.Split(text, " ")
+
+			switch splt[0] {
+			case "exit", "quit", "shutdown":
+				log.Println("shutting down..")
+				break scan
+
+			case "set":
+				// variable := ""
+				// value := ""
+
+				// if len(splt) > 2 {
+				// 	variable = splt[1]
+				// 	value = splt[2]
+				// } else {
+				// 	println("needs value")
+				// 	continue
+				// }
+			}
+		}
+	}
+}
