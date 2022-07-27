@@ -214,13 +214,11 @@ func main() {
 		group.Done()
 	}(&group, log_term)
 
-	s := ""
-
-	fmt.Print("Enter any key to terminate")
-	fmt.Scanf("%s", &s)
+	<-TermSig
 
 	log.Println("terminating bot..")
 
+	Bot.RemoveWebhook()
 	Bot.Stop()
 	Bot.Close()
 
