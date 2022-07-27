@@ -11,8 +11,8 @@ import (
 	"syscall"
 	"time"
 
+	tele "github.com/Henry96Markle/telebot"
 	"github.com/joho/godotenv"
-	tele "gopkg.in/telebot.v3"
 )
 
 type Configuration struct {
@@ -58,7 +58,7 @@ func init() {
 
 	// Get configuration
 
-	env_err := godotenv.Load()
+	env_err := godotenv.Load("config.ev")
 
 	if env_err != nil {
 		log.Fatalf("error loading configuration: %v\n", env_err)
@@ -103,11 +103,8 @@ func init() {
 	// Initialize bot
 
 	pref := tele.Settings{
-		Token: Config.BotToken,
-		Poller: &tele.Webhook{
-			Endpoint:       &tele.WebhookEndpoint{PublicURL: "https://botone-bot.herokuapp.com/"},
-			AllowedUpdates: []string{"callback_query", "message"},
-			Listen:         ":" + os.Getenv("PORT")},
+		Token:   Config.BotToken,
+		Poller:  &tele.LongPoller{Timeout: time.Second * 60},
 		Verbose: true,
 	}
 
@@ -197,11 +194,10 @@ func main() {
 		group.Done()
 	}(&group, log_term)
 
-	<-TermSig
+	fmt.Scan()
 
 	log.Println("terminating bot..")
 
-	Bot.RemoveWebhook()
 	Bot.Stop()
 	Bot.Close()
 

@@ -5,10 +5,10 @@ go 1.18
 require (
 	github.com/joho/godotenv v1.4.0
 	go.mongodb.org/mongo-driver v1.10.0
-	gopkg.in/telebot.v3 v3.0.0
 )
 
 require (
+	github.com/Henry96Markle/telebot v0.0.0-20220727184843-ebbf02d307b6 // indirect
 	github.com/golang/snappy v0.0.1 // indirect
 	github.com/klauspost/compress v1.13.6 // indirect
 	github.com/montanaflynn/stats v0.0.0-20171201202039-1bf9dbcd8cbe // indirect

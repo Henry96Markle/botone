@@ -9,9 +9,9 @@ import (
 	"strings"
 	"time"
 
+	tele "github.com/Henry96Markle/telebot"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
-	tele "gopkg.in/telebot.v3"
 )
 
 const (
