@@ -69,6 +69,11 @@ func init() {
 	connection_string_env, ok3 := os.LookupEnv("CONNECTION_STRING")
 	logging_to_channel_env, ok4 := os.LookupEnv("LOGGING_TO_CHANNEL")
 	log_channel_id_env, ok5 := os.LookupEnv("LOG_CHANNEL_ID")
+	port_env, ok6 := os.LookupEnv("PORT")
+
+	if !ok6 {
+		port_env = "80"
+	}
 
 	if !(ok1 && ok2 && ok3 && ok4) {
 		log.Fatalf("FATAL: unable to acquire evironment variable(s): "+
@@ -118,8 +123,12 @@ func init() {
 	// Initialize bot
 
 	pref := tele.Settings{
-		Token:   Config.BotToken,
-		Poller:  &tele.LongPoller{Timeout: time.Second * 60},
+		Token: Config.BotToken,
+		Poller: &tele.Webhook{
+			Endpoint:       &tele.WebhookEndpoint{PublicURL: "https://botone-bot.herokuapp.com/"},
+			AllowedUpdates: []string{"message", "callback_query"},
+			Listen:         ":" + port_env,
+		},
 		Verbose: true,
 	}
 
