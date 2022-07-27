@@ -825,7 +825,7 @@ func SetHandler(c tele.Context) error {
 
 	if err != nil {
 		log.Printf("error updating user: %v\n", err)
-		return c.Reply("Could not perform this aaction.")
+		return c.Reply("Could not perform this action.")
 	}
 
 	return c.Reply("Permission set.")
