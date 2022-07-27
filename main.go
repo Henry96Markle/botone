@@ -126,7 +126,7 @@ func init() {
 		Token: Config.BotToken,
 		Poller: &tele.Webhook{
 			Endpoint:       &tele.WebhookEndpoint{PublicURL: "https://botone-bot.herokuapp.com/"},
-			AllowedUpdates: []string{"message", "callback_query"},
+			AllowedUpdates: []string{"message", "callback_query", "inline_query"},
 			Listen:         ":" + port_env,
 		},
 		Verbose: true,
