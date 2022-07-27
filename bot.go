@@ -381,6 +381,9 @@ func UploadResultBtnHandler(ctx tele.Context) error {
 
 // Syntax:
 // 	- /alias <ID/reply-to-message> <add/remove> <name/ID/username> <value1>; <value2> ..
+//
+// TODO:
+//	Must implement server-side duplicate checking.
 func AliasHandler(ctx tele.Context) error {
 	var (
 		length = len(ctx.Args())
@@ -437,8 +440,17 @@ func AliasHandler(ctx tele.Context) error {
 		return ctx.Reply("Invalid ID.")
 	}
 
+	user, u_err := Data.FindByID(id)
+
+	if u_err != nil {
+		log.Printf("error querying user by ID: %v\n", u_err)
+		return ctx.Reply("ID not found.")
+	}
+
 	if mode == "name" {
-		err := Data.Names(remove, id, values...)
+
+		filtered_values := Undupe(values, user.Names)
+		err := Data.Names(remove, id, filtered_values...)
 
 		if err != nil {
 			log.Printf(
@@ -451,9 +463,11 @@ func AliasHandler(ctx tele.Context) error {
 			return ctx.Reply("Could not perform this action.")
 		}
 	} else if mode == "username" {
+
+		filtered_values := Undupe(values, user.Usernames)
 		usernames := make([]string, 0, len(values))
 
-		for _, v := range values {
+		for _, v := range filtered_values {
 			usernames = append(usernames, strings.TrimLeft(v, "@"))
 		}
 
@@ -470,19 +484,19 @@ func AliasHandler(ctx tele.Context) error {
 			return ctx.Reply("Could not perform this action.")
 		}
 	} else if mode == "id" {
-		ids := make([]int64, 0, len(values))
 
-		for _, v := range values {
-			i, e := strconv.ParseInt(v, 0, 64)
+		filtered_values := Undupe(Map(values, func(s string) (int64, error) {
+			i, e := strconv.ParseInt(s, 0, 64)
 
 			if e == nil {
-				ids = append(ids, i)
+				return i, nil
 			} else {
-				log.Printf("error parsing string \"%s\": %v\n", v, e)
+				log.Printf("error parsing string \"%s\": %v\n", s, e)
+				return 0, e
 			}
-		}
+		}), user.AliasIDs)
 
-		err := Data.Aliases(remove, id, ids...)
+		err := Data.Aliases(remove, id, filtered_values...)
 
 		if err != nil {
 			log.Printf("error sending %s request: %v\n", BoolToStr(remove, "pull", "push"), err)
@@ -597,7 +611,7 @@ func RegHandler(ctx tele.Context) error {
 	_, data_err = Data.FindByID(id)
 
 	if data_err == nil {
-		return ctx.Reply("User already exists in the database.")
+		return ctx.Reply("User is already registered.")
 	}
 
 	user = User{
