@@ -145,3 +145,33 @@ func Parse(input string) (args []string, options map[string]string) {
 
 	return
 }
+
+// Filter duplicate items from arr1, if they exist in arr2.
+func Undupe[K comparable](arr1, arr2 []K) []K {
+	filtered := make([]K, 0, len(arr1))
+
+outter:
+	for _, x := range arr1 {
+		for _, y := range arr2 {
+			if x == y {
+				continue outter
+			}
+		}
+		filtered = append(filtered, x)
+	}
+
+	return filtered
+}
+
+func Map[A any, B any](arr []A, operator func(A) (B, error)) []B {
+	result := make([]B, 0, len(arr))
+
+	for _, e := range arr {
+		r, err := operator(e)
+		if err == nil {
+			result = append(result, r)
+		}
+	}
+
+	return result
+}
