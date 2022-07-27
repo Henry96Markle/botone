@@ -8,7 +8,7 @@ require (
 )
 
 require (
-	github.com/Henry96Markle/telebot v0.0.0-20220727184843-ebbf02d307b6 // indirect
+	github.com/Henry96Markle/telebot v0.0.0-20220727184843-ebbf02d307b6
 	github.com/golang/snappy v0.0.1 // indirect
 	github.com/klauspost/compress v1.13.6 // indirect
 	github.com/montanaflynn/stats v0.0.0-20171201202039-1bf9dbcd8cbe // indirect
