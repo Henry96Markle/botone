@@ -70,10 +70,10 @@ var (
 
 		CMD_RECORD: "Write down what the user did under a certain category.\n\n" +
 			"Syntax:\n\n/record <ID/reply-to-message> <category> [note1; note2; note3; ..]\n\nExample:\n\n" +
-			"/record 69696969 bans shared a pirated movie; he blamed me for it",
+			"/record 69696969 bans shared a pirated movie; he blamed me for eating his sandwish",
 
 		CMD_RECALL: "Recall information about a person who's registered before.\n\nSyntax:\n\n" +
-			"- /recall <reply-to-message>\n\n" +
+			"- /recall <ID/reply-to-message>\n\n" +
 			"- /recall <name/username> <value>\n\nExamples:\n\n" +
 			"/recall 69696969\n/recall name Miles Edgeworth",
 
@@ -84,9 +84,10 @@ var (
 		CMD_HELP: "Learn each command's syntax by typing /help followed by the name of the command.\n\nSyntax:\n\n" +
 			"- /help\n- /help <command>",
 
-		CMD_UNREG: "Unregister people and delete them from the database.\n\nSyntax:\n\n" +
+		CMD_UNREG: "There are some people you just want to forget.\n" +
+			"Unregister and delete them from the database.\n\nSyntax:\n\n" +
 			"- /unreg <ID/reply-to-message>",
-		CMD_SET: "You can grant some users access to the database. Either read-only oe read/write permissions.\n" +
+		CMD_SET: "You can grant some users access to the database. Either read-only or read/write permissions.\n" +
 			"The permissions available are:\n\n- [0] none\n- [1] read\n- [2] write\n\n" +
 			"Syntax:\n\n/set <ID> <permission>\n\nExamples:\n\n/set 6969669 read\n/set 1070000 write\n/set 69 none",
 	}
