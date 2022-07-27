@@ -58,7 +58,7 @@ func init() {
 
 	// Get configuration
 
-	env_err := godotenv.Load("config.ev")
+	env_err := godotenv.Load()
 
 	if env_err != nil {
 		log.Fatalf("error loading configuration: %v\n", env_err)
@@ -194,10 +194,11 @@ func main() {
 		group.Done()
 	}(&group, log_term)
 
-	fmt.Scan()
+	<-TermSig
 
 	log.Println("terminating bot..")
 
+	Bot.RemoveWebhook()
 	Bot.Stop()
 	Bot.Close()
 
