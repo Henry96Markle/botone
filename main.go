@@ -201,8 +201,8 @@ func main() {
 
 	log.Println("terminating bot..")
 
-	Bot.RemoveWebhook()
 	Bot.Stop()
+	Bot.RemoveWebhook()
 	Bot.Close()
 
 	log.Println("disconnecting..")
