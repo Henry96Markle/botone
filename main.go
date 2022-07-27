@@ -58,7 +58,7 @@ func init() {
 
 	// Get configuration
 
-	env_err := godotenv.Load()
+	env_err := godotenv.Load("config.env")
 
 	if env_err != nil {
 		log.Printf("error loading configuration: %v\n", env_err)
@@ -145,7 +145,9 @@ func init() {
 		return func(ctx tele.Context) error {
 			toCheck := ""
 
-			if ctx.Callback() != nil {
+			if ctx.Query() != nil {
+				toCheck = tele.OnQuery
+			} else if ctx.Callback() != nil {
 				toCheck = ctx.Callback().Unique
 			} else {
 				toCheck = strings.TrimLeft(strings.Split(ctx.Text(), " ")[0], "/")
@@ -166,7 +168,7 @@ func init() {
 		}
 	})
 
-	//Bot.Handle(tele.OnQuery, QueryHandler) // <- Not working
+	Bot.Handle(tele.OnQuery, QueryHandler) // <- Not working
 
 	Bot.Handle("/"+CMD_SET, SetHandler)
 	Bot.Handle("/"+CMD_REG, RegHandler)
