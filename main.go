@@ -58,7 +58,7 @@ func init() {
 
 	// Get configuration
 
-	env_err := godotenv.Load("config.env")
+	env_err := godotenv.Load()
 
 	if env_err != nil {
 		log.Fatalf("error loading configuration: %v\n", env_err)
