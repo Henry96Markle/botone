@@ -61,12 +61,27 @@ func init() {
 	env_err := godotenv.Load()
 
 	if env_err != nil {
-		log.Fatalf("error loading configuration: %v\n", env_err)
+		log.Printf("error loading configuration: %v\n", env_err)
 	}
 
-	owner_id, owner_err := strconv.ParseInt(os.Getenv("OWNER"), 0, 64)
+	owner_env, ok1 := os.LookupEnv("OWNER")
+	token_env, ok2 := os.LookupEnv("TOKEN")
+	connection_string_env, ok3 := os.LookupEnv("CONNECTION_STRING")
+	logging_to_channel_env, ok4 := os.LookupEnv("LOGGING_TO_CHANNEL")
+	log_channel_id_env, ok5 := os.LookupEnv("LOG_CHANNEL_ID")
 
-	chan_id, chan_err := strconv.ParseInt(os.Getenv("LOG_CHANNEL_ID"), 0, 64)
+	if !(ok1 && ok2 && ok3 && ok4) {
+		log.Fatalf("FATAL: unable to acquire evironment variable(s): "+
+			"OWNER: %t, TOKEN: %t, CONNECTION_STRING: %t, LOGGING_TO_CHANNEL: %t\n", ok1, ok2, ok3, ok4)
+	}
+
+	if ok4 && logging_to_channel_env == "true" && !ok5 {
+		log.Fatalf("FATAL: specified to log into a channel, but was not given an ID for one\n")
+	}
+
+	owner_id, owner_err := strconv.ParseInt(owner_env, 0, 64)
+
+	chan_id, chan_err := strconv.ParseInt(log_channel_id_env, 0, 64)
 
 	if owner_err != nil {
 		log.Fatalf("FATAL: error parsing owner ID: %v\n", owner_err)
@@ -84,8 +99,8 @@ func init() {
 
 	Config = &Configuration{
 		OwnerTelegramID:  owner_id,
-		BotToken:         os.Getenv("TOKEN"),
-		ConnectionString: os.Getenv("CONNECTION_STRING"),
+		BotToken:         token_env,
+		ConnectionString: connection_string_env,
 		LoggingToChannel: doLog,
 		LogChannelID:     chan_id,
 	}
