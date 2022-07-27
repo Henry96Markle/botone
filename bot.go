@@ -322,11 +322,13 @@ func RegHelpBtnHandler(ctx tele.Context) error {
 }
 
 func RecordHelpBtnHandler(ctx tele.Context) error {
-	return ctx.Edit(
-		"Record users.\n\nSyntax:\n\n\t"+
-			"- /record <ID/reply-to-message> <category> [note1; note2; note3; ..]\n\n\t",
-		BackToHelpKeyboard,
-	)
+	s, ok := CommandSyntax[CMD_RECORD]
+
+	if !ok {
+		panic(errors.New("command \"" + CMD_RECORD + "\" is not registered"))
+	}
+
+	return ctx.Edit(s, BackToHelpKeyboard)
 }
 
 func SetHelpBtnHandler(c tele.Context) error {
@@ -340,25 +342,22 @@ func SetHelpBtnHandler(c tele.Context) error {
 }
 
 func AliasHelpBtnHandler(ctx tele.Context) error {
-	return ctx.Edit(
-		"Add more IDs, names, or usernames that belong to the same person.\n\nSyntax:\n\n\t"+
-			"- /alias <ID/reply-to-message> <add/remove> <id/name/username> <value1>; <value2> ..",
-		BackToHelpKeyboard,
-	)
+	s, ok := CommandSyntax[CMD_ALIAS]
+
+	if !ok {
+		panic(errors.New("command \"" + CMD_ALIAS + "\" is not registered"))
+	}
+	return ctx.Edit(s, BackToHelpKeyboard)
 }
 
 func RecallHelpBtnHandler(ctx tele.Context) error {
-	// Syntax:
-	//
-	//	- /recall <ID/reply-to-message>
-	//	- /recall <username/name> <value>
+	s, ok := CommandSyntax[CMD_RECALL]
 
-	return ctx.Edit(
-		"Access the database and recall data regarding a certain person.\n\nSyntax:\n\n\t"+
-			"- /recall <reply-to-message>\n\t"+
-			"- /recall <name/username> <value>",
-		BackToHelpKeyboard,
-	)
+	if !ok {
+		panic(errors.New("command \"" + CMD_RECALL + "\" is not registered"))
+	}
+
+	return ctx.Edit(s, BackToHelpKeyboard)
 }
 
 func UploadResultBtnHandler(ctx tele.Context) error {
