@@ -58,7 +58,7 @@ func init() {
 
 	// Get configuration
 
-	env_err := godotenv.Load()
+	env_err := godotenv.Load("config.env")
 
 	if env_err != nil {
 		log.Printf("error loading configuration: %v\n", env_err)
@@ -118,8 +118,11 @@ func init() {
 	// Initialize bot
 
 	pref := tele.Settings{
-		Token:  Config.BotToken,
-		Poller: &tele.LongPoller{Timeout: time.Second * 60},
+		Token: Config.BotToken,
+		Poller: &tele.LongPoller{
+			Timeout:        time.Second * 60,
+			AllowedUpdates: []string{"message", "callback_query", "inline_query"},
+		},
 	}
 
 	b, b_err := tele.NewBot(pref)
@@ -133,6 +136,12 @@ func init() {
 
 	Bot.Use(func(hf tele.HandlerFunc) tele.HandlerFunc {
 		return func(ctx tele.Context) error {
+			// Check fot callback_query
+			if ctx.Query() != nil {
+				log.Printf("%+v", ctx.Query())
+				return QueryHandler(ctx)
+			}
+
 			toCheck := ""
 
 			if ctx.Callback() != nil {
@@ -210,6 +219,7 @@ func main() {
 
 	s := ""
 
+	fmt.Print("Enter any key to terminate")
 	fmt.Scanf("%s", &s)
 
 	log.Println("terminating bot..")
