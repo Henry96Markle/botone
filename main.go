@@ -209,6 +209,7 @@ func main() {
 
 	Data.Disconnect()
 
+	log_term <- true
 	group.Wait()
 
 	log.Println("Program has ended.")
