@@ -3,6 +3,7 @@ package main
 import (
 	"errors"
 	"fmt"
+	"strconv"
 	"strings"
 )
 
@@ -116,36 +117,6 @@ func DisplayUser(user *User) string {
 	)
 }
 
-// NOT finished yet.
-func Parse(input string) (args []string, options map[string]string) {
-	splt := strings.Split(input, " ")
-
-	args = []string{}
-
-	if strings.Contains(input, "where") {
-		options = map[string]string{}
-	}
-
-	w_found := false
-	w_index := -1
-
-	for i, s := range splt {
-		if s == "where" {
-			w_found = true
-			w_index = i
-			break
-		} else {
-			args = append(args, s)
-		}
-	}
-
-	if w_found {
-		w_index++
-	}
-
-	return
-}
-
 // Filter duplicate items from arr1, if they exist in arr2.
 func Undupe[K comparable](arr1, arr2 []K) []K {
 	filtered := make([]K, 0, len(arr1))
@@ -174,4 +145,14 @@ func Map[A any, B any](arr []A, operator func(A) (B, error)) []B {
 	}
 
 	return result
+}
+
+func Parse(a string) (string, int64, bool) {
+	id, p_err := strconv.ParseInt(a, 0, 64)
+
+	if p_err != nil {
+		return a, 0, false
+	} else {
+		return "", id, true
+	}
 }

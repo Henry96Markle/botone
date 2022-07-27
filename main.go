@@ -123,6 +123,7 @@ func init() {
 			Timeout:        time.Second * 60,
 			AllowedUpdates: []string{"message", "callback_query", "inline_query"},
 		},
+		Verbose: true,
 	}
 
 	b, b_err := tele.NewBot(pref)
@@ -136,15 +137,11 @@ func init() {
 
 	Bot.Use(func(hf tele.HandlerFunc) tele.HandlerFunc {
 		return func(ctx tele.Context) error {
-			// Check fot callback_query
-			if ctx.Query() != nil {
-				log.Printf("%+v", ctx.Query())
-				return QueryHandler(ctx)
-			}
-
 			toCheck := ""
 
-			if ctx.Callback() != nil {
+			if ctx.Query() != nil {
+				toCheck = tele.OnQuery
+			} else if ctx.Callback() != nil {
 				toCheck = ctx.Callback().Unique
 			} else {
 				toCheck = strings.TrimLeft(strings.Split(ctx.Text(), " ")[0], "/")
@@ -165,7 +162,7 @@ func init() {
 		}
 	})
 
-	//Bot.Handle(tele.OnQuery, QueryHandler) // <- Not working
+	Bot.Handle(tele.OnQuery, QueryHandler) // <- Not working
 
 	Bot.Handle("/"+CMD_SET, SetHandler)
 	Bot.Handle("/"+CMD_REG, RegHandler)

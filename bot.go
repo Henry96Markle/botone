@@ -63,6 +63,8 @@ var (
 		BTN_UNREG_HELP:    2,
 		BTN_UPLOAD_RESULT: 1,
 		BTN_SET_HELP:      3,
+
+		tele.OnQuery: 1,
 	}
 
 	CommandSyntax = map[string]string{
@@ -671,26 +673,64 @@ func UnregHandler(ctx tele.Context) error {
 }
 
 func QueryHandler(ctx tele.Context) error {
-	urls := []string{
-		"http://photo.jpg",
-		"http://photo2.jpg",
-	}
+	var (
+		str    string
+		id     int64
+		is_int bool
 
-	results := make(tele.Results, len(urls)) // []tele.Result
-	for i, url := range urls {
-		result := &tele.PhotoResult{
-			URL:      url,
-			ThumbURL: url, // required for photos
+		users    []User
+		data_err error
+	)
+
+	str, id, is_int = Parse(ctx.Query().Text)
+
+	if is_int {
+		user, data_err := Data.FindByID(id)
+		fmt.Printf("%+v", user)
+
+		if data_err == nil {
+			users = []User{user}
 		}
 
-		results[i] = result
-		// needed to set a unique string ID for each result
-		results[i].SetResultID(strconv.Itoa(i))
+	} else {
+		str = strings.TrimLeft(str, "@")
+
+		users, data_err = Data.Filter(bson.D{{Key: "$or", Value: []bson.M{
+			{"names": str},
+			{"usernames": str},
+		}}})
 	}
+
+	results := make(tele.Results, 0, len(users))
+
+	if data_err != nil {
+		fmt.Printf("error: %v\n", data_err)
+		return ctx.Answer(nil)
+	} else {
+		for _, u := range users {
+			name, id := "", u.TelegramID
+
+			if len(u.Names) > 0 {
+				name = u.Names[len(u.Names)-1]
+			}
+
+			results = append(results, &tele.ArticleResult{
+				Title: BoolToStr(name != "", name, fmt.Sprintf("%d", id)),
+				Text:  DisplayUser(&u),
+			})
+		}
+	}
+
+	for i := range results {
+		results[i].SetResultID(strconv.Itoa(i))
+		results[i].SetParseMode(tele.ModeHTML)
+	}
+
+	fmt.Printf("Results: %v", results)
 
 	return ctx.Answer(&tele.QueryResponse{
 		Results:   results,
-		CacheTime: 60, // a minute
+		CacheTime: 60,
 	})
 }
 
