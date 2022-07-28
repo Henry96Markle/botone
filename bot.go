@@ -23,6 +23,7 @@ const (
 	CMD_RECALL  = "recall"
 	CMD_SET     = "set"
 	CMD_CREDITS = "credits"
+	CMD_PERM    = "perm"
 
 	// Button unique strings
 
@@ -34,15 +35,18 @@ const (
 	BTN_BACK_TO_HELP  = "backToHelpMainPageBtn"
 	BTN_UPLOAD_RESULT = "uploadResultBtn"
 	BTN_SET_HELP      = "setCommandHelpBtn"
+	BTN_PERM_HELP     = "permComandHelpBtn"
 
 	BUFF_FILE_PATH = "./b.txt"
 
-	VERSION = "0.0.1"
+	VERSION = "0.0.5"
 )
 
 var (
 	Commands = []string{
-		CMD_HELP, CMD_REG, CMD_RECORD, CMD_ALIAS, CMD_RECALL, CMD_UNREG, CMD_SET, CMD_CREDITS,
+		CMD_HELP, CMD_REG, CMD_RECORD, CMD_ALIAS,
+		CMD_RECALL, CMD_UNREG, CMD_SET, CMD_CREDITS,
+		CMD_PERM,
 	}
 
 	CommandMap = map[string]func(tele.Context) error{
@@ -54,6 +58,7 @@ var (
 		CMD_REG:     RegHandler,
 		CMD_UNREG:   UnregHandler,
 		CMD_SET:     SetHandler,
+		CMD_PERM:    PermHandler,
 	}
 
 	Permissions = map[string]int{
@@ -65,6 +70,7 @@ var (
 		CMD_RECALL:  1,
 		CMD_HELP:    1,
 		CMD_CREDITS: 1,
+		CMD_PERM:    1,
 
 		BTN_RECORD_HELP:   2,
 		BTN_ALIAS_HELP:    2,
@@ -74,6 +80,7 @@ var (
 		BTN_UNREG_HELP:    2,
 		BTN_UPLOAD_RESULT: 1,
 		BTN_SET_HELP:      3,
+		BTN_PERM_HELP:     1,
 
 		tele.OnQuery: 1,
 	}
@@ -103,6 +110,8 @@ var (
 		CMD_SET: "You can grant some users access to the database. Either read-only or read/write permissions.\n" +
 			"The permissions available are:\n\n- [0] none\n- [1] read\n- [2] write\n\n" +
 			"Syntax:\n\n/set <ID> <permission>\n\nExamples:\n\n/set 6969669 read\n/set 1070000 write\n/set 69 none",
+		CMD_PERM: "View the permission level of registered users.\n\nSyntax:\n\n" +
+			"/perm <ID/reply-to-message>",
 	}
 
 	StringBuffer = ""
@@ -112,6 +121,11 @@ var (
 	SetHelpBtn = &tele.Btn{
 		Unique: BTN_SET_HELP,
 		Text:   CMD_SET,
+	}
+
+	PermHelpBtn = &tele.Btn{
+		Unique: BTN_PERM_HELP,
+		Text:   CMD_PERM,
 	}
 
 	RecordHelpBtn = &tele.Btn{
@@ -166,7 +180,8 @@ var (
 	HelpMainPageKeyboard = &tele.ReplyMarkup{
 		InlineKeyboard: [][]tele.InlineButton{
 			{*RecordHelpBtn.Inline(), *AliasHelpBtn.Inline(), *RecallHelpBtn.Inline()},
-			{*RegHelpBtn.Inline(), *UnregHelpBtn.Inline(), *SetHelpBtn.Inline()},
+			{*RegHelpBtn.Inline(), *UnregHelpBtn.Inline()},
+			{*SetHelpBtn.Inline(), *PermHelpBtn.Inline()},
 		},
 	}
 
@@ -331,6 +346,16 @@ func RecallHandler(ctx tele.Context) error {
 			tele.ModeHTML,
 		)
 	}
+}
+
+func PermHelpBtnHandler(c tele.Context) error {
+	perm, ok := CommandSyntax[CMD_PERM]
+
+	if !ok {
+		panic(errors.New("command \"" + CMD_PERM + "\" is not registered"))
+	}
+
+	return c.Edit(perm, BackToHelpKeyboard)
 }
 
 func BackToHelpBtnHandler(ctx tele.Context) error {
@@ -856,4 +881,43 @@ func SetHandler(c tele.Context) error {
 	}
 
 	return c.Reply("Permission set.")
+}
+
+func PermHandler(c tele.Context) error {
+	var (
+		id   int64
+		perm string
+		u    User
+
+		parse_err error
+	)
+
+	if len(c.Args()) == 0 {
+		if c.Message().ReplyTo != nil && c.Message().ReplyTo.Sender != nil {
+			id = c.Message().ReplyTo.Sender.ID
+		} else {
+			return c.Reply("ID required.")
+		}
+	} else {
+		id, parse_err = strconv.ParseInt(c.Args()[0], 0, 64)
+
+		if parse_err != nil {
+			return c.Reply("Invalid ID.")
+		}
+	}
+
+	u, _ = Data.FindByID(id)
+
+	switch u.Permission {
+	case 1:
+		perm = "read-only"
+	case 2:
+		perm = "read/write"
+	case 3:
+		perm = "operator"
+	default:
+		perm = "no"
+	}
+
+	return c.Reply("This user has <b>"+perm+"</b> access.", tele.ModeHTML)
 }

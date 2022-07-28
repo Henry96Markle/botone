@@ -222,6 +222,7 @@ func init() {
 
 	Bot.Handle("/"+CMD_SET, SetHandler)
 	Bot.Handle("/"+CMD_REG, RegHandler)
+	Bot.Handle("/"+CMD_PERM, PermHandler)
 	Bot.Handle("/"+CMD_HELP, HelpHandler)
 	Bot.Handle("/"+CMD_ALIAS, AliasHandler)
 	Bot.Handle("/"+CMD_UNREG, UnregHandler)
@@ -231,6 +232,7 @@ func init() {
 
 	Bot.Handle(SetHelpBtn, SetHelpBtnHandler)
 	Bot.Handle(RegHelpBtn, RegHelpBtnHandler)
+	Bot.Handle(PermHelpBtn, PermHelpBtnHandler)
 	Bot.Handle(UnregHelpBtn, UnregHelpBtnHandler)
 	Bot.Handle(AliasHelpBtn, AliasHelpBtnHandler)
 	Bot.Handle(RecordHelpBtn, RecordHelpBtnHandler)
