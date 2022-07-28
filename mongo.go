@@ -17,6 +17,7 @@ type Record struct {
 	Date   time.Time `bson:"date" json:"date"`
 }
 
+// User structure is a wrapper for the MongoDB document.
 type User struct {
 	ID         primitive.ObjectID    `bson:"_id" json:"_id"`
 	Names      []string              `bson:"names" json:"names"`
@@ -33,6 +34,7 @@ type Database struct {
 	collection string
 }
 
+// Initializes a new Database struct. If connection to the database fails, an error is returned.
 func NewDatabase(connectionString string, databaseName string, collectionName string) (database *Database, err error) {
 	client, err := mongo.Connect(context.TODO(), options.Client().ApplyURI(connectionString))
 
@@ -47,6 +49,7 @@ func NewDatabase(connectionString string, databaseName string, collectionName st
 	}, nil
 }
 
+// Disconnects from the database.
 func (d Database) Disconnect() error {
 	return d.client.Disconnect(context.TODO())
 }
@@ -55,6 +58,7 @@ func (d Database) Collection() *mongo.Collection {
 	return d.database.Collection(d.collection)
 }
 
+// Queries one user and returns an error if the query fails.
 func (d Database) Find(filter bson.D) (user User, err error) {
 	user = User{}
 
@@ -87,7 +91,8 @@ func (d Database) Filter(filter bson.D) (users []User, err error) {
 	return
 }
 
-func (d Database) GetRecords() (records []User, err error) {
+// Gets all the documents from the database.
+func (d Database) GetAll() (records []User, err error) {
 	return d.Filter(bson.D{{}})
 }
 
@@ -215,42 +220,6 @@ func (d Database) Usernames(pull bool, id int64, usernames ...string) error {
 
 func (d Database) ReplaceByID(id int64, user User) error {
 	_, err := d.Collection().ReplaceOne(context.TODO(), bson.D{{Key: "tg_id", Value: id}}, user)
-
-	return err
-}
-
-// Generic API
-
-func (d Database) Field(id int64, field string, value string) error {
-	_, err := d.Collection().UpdateOne(
-		context.TODO(),
-		bson.D{{Key: "tg_id", Value: id}}, bson.D{{Key: "$set", Value: bson.D{{Key: field, Value: value}}}})
-
-	return err
-}
-
-func (d Database) Array(pull bool, id int64, field string, values ...any) error {
-	modifier := "$push"
-
-	if pull {
-		modifier = "$pull"
-	}
-
-	_, err := d.Collection().UpdateOne(
-		context.TODO(),
-		bson.D{
-			{Key: "tg_id", Value: id}},
-		bson.D{{
-			Key: modifier,
-			Value: bson.D{{
-				Key: field,
-				Value: bson.D{{
-					Key:   "$each",
-					Value: values,
-				}},
-			}},
-		}},
-	)
 
 	return err
 }

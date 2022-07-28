@@ -7,7 +7,11 @@ import (
 	"strings"
 )
 
+// Trims the "@" from the username string.
 func TrimUsername(s string) string { return strings.TrimLeft(s, "@") }
+
+// Parses a string value; if the string is equal to tr, true is returned, else if it matches lf,
+// false is returned; otherwise an error is returned.
 func StrToBool(s string, tr string, fl string) (b bool, err error) {
 	switch s {
 	case tr:
@@ -27,6 +31,7 @@ func BoolToStr(b bool, str1 string, str2 string) string {
 	}
 }
 
+// Parses a User.Record into a formatted string.
 func RecordToStr(r Record, offset string) string {
 	return fmt.Sprintf(
 		"Date: %v\n%sChat ID: <code>%d</code>%s",
@@ -36,6 +41,7 @@ func RecordToStr(r Record, offset string) string {
 		BoolToStr(len(r.Notes) > 0, "\n"+offset+"Notes:\n"+offset+"- "+strings.Join(r.Notes, "\n"+offset+"- "), ""))
 }
 
+// Applies RecordToStr(Record, string) to a slice.
 func RecordStrArr(offset string, records ...Record) []string {
 	str := make([]string, 0, len(records))
 
@@ -46,6 +52,7 @@ func RecordStrArr(offset string, records ...Record) []string {
 	return str
 }
 
+// Parses an slice of 64-bit integers to strings.
 func IntToStrSlice(a ...int64) []string {
 	str := make([]string, 0, len(a))
 
@@ -56,6 +63,7 @@ func IntToStrSlice(a ...int64) []string {
 	return str
 }
 
+// Parses a user to a formatted string.
 func DisplayUser(user *User) string {
 	records := make([]string, 0, len(user.Records))
 
@@ -117,7 +125,8 @@ func DisplayUser(user *User) string {
 	)
 }
 
-// Filter duplicate items from arr1, if they exist in arr2.
+// Filter duplicate items from arr1, if they exist in arr2, and returns the a new array with the
+// filtered elements.
 func Undupe[K comparable](arr1, arr2 []K) []K {
 	filtered := make([]K, 0, len(arr1))
 
@@ -134,6 +143,9 @@ outter:
 	return filtered
 }
 
+// Applies a function to each element of an array and returns a new array with the resulted elements.
+//The function may return an error instead
+// of a new value. In that case, the element is skipped and won't be added to the result array.
 func Map[A any, B any](arr []A, operator func(A) (B, error)) []B {
 	result := make([]B, 0, len(arr))
 
@@ -147,6 +159,8 @@ func Map[A any, B any](arr []A, operator func(A) (B, error)) []B {
 	return result
 }
 
+// Tries to parse a string. If successful, a 64-bit integer is returned, otherwise the string is returned.
+// If the parsing was successful, a boolean value of true would be returned, otherwise false.
 func Parse(a string) (string, int64, bool) {
 	id, p_err := strconv.ParseInt(a, 0, 64)
 

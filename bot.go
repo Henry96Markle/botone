@@ -934,7 +934,7 @@ func SetHandler(c tele.Context) error {
 			return c.Reply(
 				"You're about to grant this user <b>operator</b> access. Are you sure?",
 				OperatorConfirmationKeyboard,
-				tele.ModeHTML) ///////
+				tele.ModeHTML)
 		} else {
 			return c.Reply("You must be the owner to grant others <b>operator</b> access.")
 		}
