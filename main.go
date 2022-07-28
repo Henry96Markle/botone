@@ -43,13 +43,33 @@ var (
 
 func ChanLog(input string) {
 	if Bot != nil && Config.LoggingToChannel {
-		Bot.Send(&tele.Chat{ID: Config.LogChannelID}, input)
+
+		chat, err := Bot.ChatByID(Config.LogChannelID)
+		if err == nil {
+			Bot.Send(
+				chat,
+				input,
+			)
+		} else {
+			log.Printf("Error: %v\n", err)
+		}
 	}
 }
 
 func ChanLogf(format string, a ...any) {
 	if Bot != nil && Config.LoggingToChannel {
-		Bot.Send(&tele.Chat{ID: Config.LogChannelID}, fmt.Sprintf(format, a...))
+		if Bot != nil && Config.LoggingToChannel {
+
+			chat, err := Bot.ChatByID(Config.LogChannelID)
+			if err == nil {
+				Bot.Send(
+					chat,
+					fmt.Sprintf(format, a...),
+				)
+			} else {
+				log.Printf("Error")
+			}
+		}
 	}
 }
 
@@ -73,8 +93,8 @@ func init() {
 	owner_env, ok1 := os.LookupEnv("OWNER")
 	token_env, ok2 := os.LookupEnv("TOKEN")
 	connection_string_env, ok3 := os.LookupEnv("CONNECTION_STRING")
-	logging_to_channel_env, ok4 := os.LookupEnv("LOGGING_TO_CHANNEL")
-	log_channel_id_env, ok5 := os.LookupEnv("LOG_CHANNEL_ID")
+	logging_to_channel_env, ok4 := os.LookupEnv("LOGGING_TO_CHAT")
+	log_channel_id_env, ok5 := os.LookupEnv("LOG_CHAT_ID")
 	port_env, ok6 := os.LookupEnv("PORT")
 
 	if !ok6 {
@@ -83,7 +103,7 @@ func init() {
 
 	if !(ok1 && ok2 && ok3 && ok4) {
 		log.Fatalf("FATAL: unable to acquire evironment variable(s): "+
-			"OWNER: %t, TOKEN: %t, CONNECTION_STRING: %t, LOGGING_TO_CHANNEL: %t\n", ok1, ok2, ok3, ok4)
+			"OWNER: %t, TOKEN: %t, CONNECTION_STRING: %t, LOGGING_TO_CHAT: %t\n", ok1, ok2, ok3, ok4)
 	}
 
 	if ok4 && logging_to_channel_env == "true" && !ok5 {
@@ -199,6 +219,7 @@ func init() {
 
 		return nil
 	})
+
 	Bot.Handle("/"+CMD_SET, SetHandler)
 	Bot.Handle("/"+CMD_REG, RegHandler)
 	Bot.Handle("/"+CMD_HELP, HelpHandler)
@@ -216,6 +237,10 @@ func init() {
 	Bot.Handle(RecallHelpBtn, RecallHelpBtnHandler)
 	Bot.Handle(BackToHelpBtn, BackToHelpBtnHandler)
 	Bot.Handle(UploadResultBtn, UploadResultBtnHandler)
+
+	Bot.OnError = func(err error, ctx tele.Context) {
+		ChanLogf("Error: %v\n", err)
+	}
 }
 
 func main() {
@@ -223,6 +248,7 @@ func main() {
 
 	// Start bot
 
+	ChanLog("Starting bot..")
 	group.Add(1)
 	go func(group *sync.WaitGroup) {
 		Bot.Start()
@@ -249,6 +275,7 @@ func main() {
 		group.Done()
 	}(&group, log_term)
 
+	ChanLog("Bot is running.")
 	if polling {
 		s := ""
 
@@ -259,6 +286,7 @@ func main() {
 		Bot.RemoveWebhook()
 	}
 
+	ChanLog("Shutting down..")
 	log.Println("terminating bot..")
 
 	Bot.Stop()
