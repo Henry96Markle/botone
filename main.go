@@ -239,6 +239,8 @@ func init() {
 	Bot.Handle(RecallHelpBtn, RecallHelpBtnHandler)
 	Bot.Handle(BackToHelpBtn, BackToHelpBtnHandler)
 	Bot.Handle(UploadResultBtn, UploadResultBtnHandler)
+	Bot.Handle(ConfirmOperatorBtn, ConfirmOperatorBtnHandler)
+	Bot.Handle(CancelOperatorConfirmationBtn, CancelOperatorConfirmationBtnHandler)
 
 	Bot.OnError = func(err error, ctx tele.Context) {
 		ChanLogf("Error: %v\n", err)

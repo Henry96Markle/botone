@@ -37,6 +37,9 @@ const (
 	BTN_SET_HELP      = "setCommandHelpBtn"
 	BTN_PERM_HELP     = "permComandHelpBtn"
 
+	BTN_CANCEL_OPERATOR_CONFIRMATION = "cancelBtn"
+	Btn_CONFIRM_OPERATOR             = "confirmOperatorBtn"
+
 	BUFF_FILE_PATH = "./b.txt"
 
 	VERSION = "0.0.5"
@@ -72,15 +75,17 @@ var (
 		CMD_CREDITS: 1,
 		CMD_PERM:    1,
 
-		BTN_RECORD_HELP:   2,
-		BTN_ALIAS_HELP:    2,
-		BTN_BACK_TO_HELP:  1,
-		BTN_RECALL_HELP:   1,
-		BTN_REG_HELP:      2,
-		BTN_UNREG_HELP:    2,
-		BTN_UPLOAD_RESULT: 1,
-		BTN_SET_HELP:      3,
-		BTN_PERM_HELP:     1,
+		BTN_RECORD_HELP:                  2,
+		BTN_ALIAS_HELP:                   2,
+		BTN_BACK_TO_HELP:                 1,
+		BTN_RECALL_HELP:                  1,
+		BTN_REG_HELP:                     2,
+		BTN_UNREG_HELP:                   2,
+		BTN_UPLOAD_RESULT:                1,
+		BTN_SET_HELP:                     3,
+		BTN_PERM_HELP:                    1,
+		BTN_CANCEL_OPERATOR_CONFIRMATION: 4,
+		Btn_CONFIRM_OPERATOR:             4,
 
 		tele.OnQuery: 1,
 	}
@@ -117,6 +122,16 @@ var (
 	StringBuffer = ""
 
 	// Buttons
+
+	CancelOperatorConfirmationBtn = &tele.Btn{
+		Unique: BTN_CANCEL_OPERATOR_CONFIRMATION,
+		Text:   "Cancel",
+	}
+
+	ConfirmOperatorBtn = &tele.Btn{
+		Unique: Btn_CONFIRM_OPERATOR,
+		Text:   "Confirm",
+	}
 
 	SetHelpBtn = &tele.Btn{
 		Unique: BTN_SET_HELP,
@@ -169,6 +184,12 @@ var (
 			Text:   "PM me",
 			URL:    "https://t.me/" + Bot.Me.Username + "?start=help",
 		}
+	}
+
+	OperatorConfirmationKeyboard = &tele.ReplyMarkup{
+		InlineKeyboard: [][]tele.InlineButton{
+			{*CancelOperatorConfirmationBtn.Inline(), *ConfirmOperatorBtn.Inline()},
+		},
 	}
 
 	UploadResultBtnKeyboard = &tele.ReplyMarkup{
@@ -373,6 +394,36 @@ func BackToHelpBtnHandler(ctx tele.Context) error {
 func RegHelpBtnHandler(ctx tele.Context) error {
 	return ctx.Edit("Register new users.\n\nSyntax:\n\n\t"+
 		"- /reg <ID/reply-to-message>", BackToHelpKeyboard)
+}
+
+func CancelOperatorConfirmationBtnHandler(c tele.Context) error {
+	return c.Edit("Operation cancelled.")
+}
+
+func ConfirmOperatorBtnHandler(c tele.Context) error {
+	user_to_confirm, parse_err := strconv.ParseInt(c.Callback().Data, 0, 64)
+
+	if parse_err != nil {
+		log.Printf("error parsing ID: %v\n", parse_err)
+		return c.Edit("Invalid callback data.")
+	}
+
+	user, data_err := Data.FindByID(user_to_confirm)
+
+	if data_err != nil {
+		log.Printf("error querying user ID: %v\n", data_err)
+		return c.Edit("Could not perform this operation.")
+	}
+
+	user.Permission = 3
+	err := Data.ReplaceByID(user_to_confirm, user)
+
+	if err != nil {
+		log.Printf("error updating user permission: %v\n", err)
+		return c.Edit("Could not perform this action.")
+	}
+
+	return c.Edit("User is now an operator!")
 }
 
 func RecordHelpBtnHandler(ctx tele.Context) error {
@@ -826,6 +877,7 @@ func SetHandler(c tele.Context) error {
 		permission = c.Args()[0]
 
 		if c.Message().ReplyTo == nil || c.Message().ReplyTo.Sender == nil {
+			log.Printf("REPLYTO: %v\nSENDER: %v\n", c.Message().ReplyTo, c.Message().ReplyTo.Sender)
 			return c.Reply("ID required.")
 		} else {
 			id = c.Message().ReplyTo.Sender.ID
@@ -860,6 +912,10 @@ func SetHandler(c tele.Context) error {
 		return c.Reply("User not found.")
 	}
 
+	if user.TelegramID == Config.OwnerTelegramID {
+		return c.Reply("You're the owner; you can't revoke your own access.")
+	}
+
 	if permission_err != nil {
 		switch permission {
 		case "none":
@@ -869,6 +925,15 @@ func SetHandler(c tele.Context) error {
 		case "write":
 			permission_int = 2
 		}
+	}
+
+	if permission_int == 3 {
+		OperatorConfirmationKeyboard.InlineKeyboard[0][1].Data = fmt.Sprintf("%d", id)
+
+		return c.Reply(
+			"You're about to grant this user <b>operator</b> access. Are you sure?",
+			OperatorConfirmationKeyboard,
+			tele.ModeHTML) ///////
 	}
 
 	user.Permission = permission_int
