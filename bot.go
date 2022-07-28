@@ -928,12 +928,16 @@ func SetHandler(c tele.Context) error {
 	}
 
 	if permission_int == 3 {
-		OperatorConfirmationKeyboard.InlineKeyboard[0][1].Data = fmt.Sprintf("%d", id)
+		if c.Message().Sender.ID == Config.OwnerTelegramID {
+			OperatorConfirmationKeyboard.InlineKeyboard[0][1].Data = fmt.Sprintf("%d", id)
 
-		return c.Reply(
-			"You're about to grant this user <b>operator</b> access. Are you sure?",
-			OperatorConfirmationKeyboard,
-			tele.ModeHTML) ///////
+			return c.Reply(
+				"You're about to grant this user <b>operator</b> access. Are you sure?",
+				OperatorConfirmationKeyboard,
+				tele.ModeHTML) ///////
+		} else {
+			return c.Reply("You must be the owner to grant others <b>operator</b> access.")
+		}
 	}
 
 	user.Permission = permission_int
