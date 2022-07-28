@@ -337,7 +337,7 @@ func BackToHelpBtnHandler(ctx tele.Context) error {
 	return ctx.Edit(
 		"Don't you hate it when poeple constantly change their names, usernames, and even their Telegram IDs, "+
 			"and then you tend to forget who they were and what they did?\n"+
-			"With Botone, you can keep track of their identidies and record "+
+			"With Botone, you can keep track of their identities and record "+
 			"their most significant actions, so you don't have to worry about forgetting and feeling like "+
 			"everyone on telegram is the same person.\n\n"+
 			"Click on the buttons below, to learn each command.",
