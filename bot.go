@@ -45,6 +45,17 @@ var (
 		CMD_HELP, CMD_REG, CMD_RECORD, CMD_ALIAS, CMD_RECALL, CMD_UNREG, CMD_SET, CMD_CREDITS,
 	}
 
+	CommandMap = map[string]func(tele.Context) error{
+		CMD_HELP:    HelpHandler,
+		CMD_ALIAS:   AliasHandler,
+		CMD_CREDITS: CreditsHandler,
+		CMD_RECALL:  RecallHandler,
+		CMD_RECORD:  RecordHandler,
+		CMD_REG:     RegHandler,
+		CMD_UNREG:   UnregHandler,
+		CMD_SET:     SetHandler,
+	}
+
 	Permissions = map[string]int{
 		CMD_SET:     3,
 		CMD_ALIAS:   2,
@@ -138,6 +149,14 @@ var (
 		Text:   "Send in a file",
 	}
 
+	InviteBtn = func() *tele.Btn {
+		return &tele.Btn{
+			Unique: "inviteBtn",
+			Text:   "PM me",
+			URL:    "https://t.me/" + Bot.Me.Username + "?start=help",
+		}
+	}
+
 	UploadResultBtnKeyboard = &tele.ReplyMarkup{
 		InlineKeyboard: [][]tele.InlineButton{
 			{*UploadResultBtn.Inline()},
@@ -188,15 +207,23 @@ func CreditsHandler(ctx tele.Context) error {
 //	- /help <command>
 func HelpHandler(ctx tele.Context) error {
 	if len(ctx.Args()) == 0 {
-		return ctx.Reply(
-			"Don't you hate it when poeple constantly change their names, usernames, and even their Telegram IDs, "+
-				"and then you tend to forget who they were and what they did?\n"+
-				"With Botone, you can keep track of their identities and record "+
-				"their most significant actions, so you don't have to worry about forgetting and feeling like "+
-				"everyone on telegram is the same person.\n\n"+
-				"Click on the buttons below, to learn each command.",
-			HelpMainPageKeyboard, tele.ModeHTML,
-		)
+		if ctx.Chat().ID == ctx.Sender().ID {
+			return ctx.Reply(
+				"Don't you hate it when poeple constantly change their names, usernames, and even their Telegram IDs, "+
+					"and then you tend to forget who they were and what they did?\n"+
+					"With Botone, you can keep track of their identities and record "+
+					"their most significant actions, so you don't have to worry about forgetting and feeling like "+
+					"everyone on telegram is the same person.\n\n"+
+					"Click on the buttons below, to learn each command.",
+				HelpMainPageKeyboard, tele.ModeHTML,
+			)
+		} else {
+			return ctx.Reply("PM me to learn how to use the bot.", &tele.ReplyMarkup{
+				InlineKeyboard: [][]tele.InlineButton{
+					{*InviteBtn().Inline()},
+				},
+			})
+		}
 	} else {
 		syntax, ok := CommandSyntax[ctx.Args()[0]]
 

@@ -1,6 +1,7 @@
 package main
 
 import (
+	"flag"
 	"fmt"
 	"log"
 	"os"
@@ -36,6 +37,8 @@ var (
 	Data *Database
 
 	TermSig chan os.Signal
+
+	polling = false
 )
 
 func ChanLog(input string) {
@@ -55,6 +58,9 @@ func init() {
 	signal.Notify(TermSig, syscall.SIGINT, syscall.SIGTERM)
 
 	println("Initializing..")
+
+	flag.BoolVar(&polling, "poll", false, "set the bot to polling mode")
+	flag.Parse()
 
 	// Get configuration
 
@@ -122,14 +128,27 @@ func init() {
 
 	// Initialize bot
 
-	pref := tele.Settings{
-		Token: Config.BotToken,
-		Poller: &tele.Webhook{
-			Endpoint:       &tele.WebhookEndpoint{PublicURL: "https://botone-bot.herokuapp.com/"},
-			AllowedUpdates: []string{"message", "callback_query", "inline_query"},
-			Listen:         ":" + port_env,
-		},
-		Verbose: true,
+	var pref tele.Settings
+
+	if polling {
+		pref = tele.Settings{
+			Token: Config.BotToken,
+			Poller: &tele.LongPoller{
+				Timeout: 60 * time.Second,
+			},
+			Verbose: true,
+		}
+
+	} else {
+		pref = tele.Settings{
+			Token: Config.BotToken,
+			Poller: &tele.Webhook{
+				Endpoint:       &tele.WebhookEndpoint{PublicURL: "https://botone-bot.herokuapp.com/"},
+				AllowedUpdates: []string{"message", "callback_query", "inline_query"},
+				Listen:         ":" + port_env,
+			},
+			Verbose: true,
+		}
 	}
 
 	b, b_err := tele.NewBot(pref)
@@ -170,6 +189,16 @@ func init() {
 
 	Bot.Handle(tele.OnQuery, QueryHandler) // <- Not working
 
+	Bot.Handle("/start", func(ctx tele.Context) error {
+		handler, ok := CommandMap[ctx.Message().Payload]
+
+		if ok {
+			ctx.Message().Payload = ""
+			return handler(ctx)
+		}
+
+		return nil
+	})
 	Bot.Handle("/"+CMD_SET, SetHandler)
 	Bot.Handle("/"+CMD_REG, RegHandler)
 	Bot.Handle("/"+CMD_HELP, HelpHandler)
@@ -220,11 +249,18 @@ func main() {
 		group.Done()
 	}(&group, log_term)
 
-	<-TermSig
+	if polling {
+		s := ""
+
+		fmt.Print("enter any key to terminate")
+		fmt.Scanf("%s\n", &s)
+	} else {
+		<-TermSig
+		Bot.RemoveWebhook()
+	}
 
 	log.Println("terminating bot..")
 
-	Bot.RemoveWebhook()
 	Bot.Stop()
 	Bot.Close()
 
