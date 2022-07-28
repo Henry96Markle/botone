@@ -122,7 +122,7 @@ func init() {
 		log.Fatalf("FATAL: error parsing log channel ID: %v\n", chan_err)
 	}
 
-	doLog, bool_err := strconv.ParseBool(os.Getenv("LOGGING_TO_CHANNEL"))
+	doLog, bool_err := strconv.ParseBool(os.Getenv("LOGGING_TO_CHAT"))
 
 	if bool_err != nil {
 		log.Fatalf("FATAL: failed to parse bool: %v\n", bool_err)
