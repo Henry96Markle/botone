@@ -260,13 +260,14 @@ func main() {
 
 	group.Add(1)
 	go func(group *sync.WaitGroup, channel <-chan bool) {
-		ticker := time.NewTicker(30 * time.Minute)
+		ticker := time.NewTicker(20 * time.Minute)
 
 	loop:
 		for {
 			select {
 			case <-ticker.C:
 				log.Println("listening..")
+				ChanLog("Still online.")
 			case <-channel:
 				break loop
 			}
