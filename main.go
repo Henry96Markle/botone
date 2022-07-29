@@ -241,6 +241,7 @@ func init() {
 	Bot.Handle(RecordHelpBtn, RecordHelpBtnHandler)
 	Bot.Handle(RecallHelpBtn, RecallHelpBtnHandler)
 	Bot.Handle(BackToHelpBtn, BackToHelpBtnHandler)
+	Bot.Handle(DeleteEntryBtn, DeleteEntryBtnHandler)
 	Bot.Handle(UploadResultBtn, UploadResultBtnHandler)
 	Bot.Handle(ConfirmOperatorBtn, ConfirmOperatorBtnHandler)
 	Bot.Handle(CancelOperatorConfirmationBtn, CancelOperatorConfirmationBtnHandler)

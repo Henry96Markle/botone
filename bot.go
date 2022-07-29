@@ -38,6 +38,8 @@ const (
 	BTN_PERM_HELP     = "permComandHelpBtn"
 	BTN_SET_PERM      = "setPermissionBtn"
 
+	BTN_DELETE_ENTRY = "deleteEntryBtn"
+
 	BTN_CANCEL_OPERATOR_CONFIRMATION = "cancelBtn"
 	BTN_CONFIRM_OPERATOR             = "confirmOperatorBtn"
 
@@ -84,6 +86,7 @@ var (
 		BTN_UNREG_HELP:                   2,
 		BTN_UPLOAD_RESULT:                1,
 		BTN_SET_HELP:                     2,
+		BTN_DELETE_ENTRY:                 2,
 		BTN_PERM_HELP:                    3,
 		BTN_SET_PERM:                     3,
 		BTN_CANCEL_OPERATOR_CONFIRMATION: 4,
@@ -149,6 +152,11 @@ var (
 	StringBuffer = ""
 
 	// Buttons
+
+	DeleteEntryBtn = &tele.Btn{
+		Unique: BTN_DELETE_ENTRY,
+		Text:   "Delete entry",
+	}
 
 	SetPermBtn = &tele.Btn{
 		Unique: BTN_SET_PERM,
@@ -437,7 +445,22 @@ func RecallHandler(ctx tele.Context) error {
 			return ctx.Reply("The result's length exceeds the message size limit.", UploadResultBtnKeyboard)
 		}
 
-		return ctx.Reply(d, tele.ModeHTML)
+		deleteBtn := *DeleteEntryBtn
+		deleteBtn.Data = fmt.Sprintf("%d", id)
+
+		var keyboard *tele.ReplyMarkup
+
+		sender, _ := Data.FindByID(ctx.Sender().ID)
+
+		if (sender.Permission >= 2) && (ctx.Chat().ID == ctx.Sender().ID) {
+			keyboard = &tele.ReplyMarkup{
+				InlineKeyboard: [][]tele.InlineButton{
+					{*deleteBtn.Inline()},
+				},
+			}
+		}
+
+		return ctx.Reply(d, keyboard, tele.ModeHTML)
 	} else {
 		str := make([]string, 0, len(users))
 
@@ -926,7 +949,7 @@ func UnregHandler(ctx tele.Context) error {
 		}
 	}
 
-	if Data.RemoveByID(id) != nil {
+	if _, e := Data.RemoveByID(id); e != nil {
 		log.Printf("error removing a user by ID: %v\n", id)
 		return ctx.Reply("User not found.")
 	} else {
@@ -1326,5 +1349,52 @@ func SetPermBtnHandler(c tele.Context) error {
 		// returning
 
 		return c.Edit("Permission updated.")
+	}
+}
+
+func DeleteEntryBtnHandler(c tele.Context) error {
+	var (
+		id    int64
+		count int64
+
+		err       error
+		parse_err error
+	)
+
+	id, parse_err = strconv.ParseInt(c.Callback().Data, 0, 64)
+
+	if parse_err != nil {
+		log.Printf("error parsing ID: %v\n", parse_err)
+		return c.Edit("Could not perform this action: Invalid ID.")
+	}
+
+	if id == Config.OwnerTelegramID {
+		return c.Edit("You can't remove the owner's registary.")
+	}
+
+	count, err = Data.RemoveByID(id)
+
+	if err != nil {
+		log.Printf("error removing ID: %v\n", err)
+		return c.Edit("Could not perform this action: Database error.")
+	}
+
+	if count == 0 {
+		return c.Edit("ID not found.")
+	} else {
+
+		// logging
+
+		name := c.Message().Sender.FirstName + " " + c.Message().Sender.LastName
+
+		ChanLogf("#unreg\n[<code>%d</code>] %shas unregistered the ID <code>%d</code>.",
+			c.Message().Sender.ID,
+			BoolToStr(name != "", name+" ", ""),
+			id,
+		)
+
+		// returning
+
+		return c.Edit("User unregistered.")
 	}
 }

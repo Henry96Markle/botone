@@ -118,10 +118,28 @@ func (d Database) Add(users ...any) error {
 	return err
 }
 
-func (d Database) RemoveByID(id int64) error {
-	_, err := d.Collection().DeleteOne(context.TODO(), bson.D{{Key: "tg_id", Value: id}})
+func (d Database) Remove(filter bson.D) (int64, error) {
+	res, err := d.Collection().DeleteOne(context.TODO(), filter)
 
-	return err
+	count := int64(0)
+
+	if res != nil {
+		count = res.DeletedCount
+	}
+
+	return count, err
+}
+
+func (d Database) RemoveByID(id int64) (int64, error) {
+	res, err := d.Collection().DeleteOne(context.TODO(), bson.D{{Key: "tg_id", Value: id}})
+
+	count := int64(0)
+
+	if res != nil {
+		count = res.DeletedCount
+	}
+
+	return count, err
 }
 
 func (d Database) Aliases(pull bool, id int64, ids ...int64) error {
