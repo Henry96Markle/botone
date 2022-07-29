@@ -827,27 +827,23 @@ func QueryHandler(ctx tele.Context) error {
 
 	if is_int {
 		user, data_err := Data.FindByID(id)
-		fmt.Printf("%+v", user)
 
 		if data_err == nil {
 			users = []User{user}
 		}
 
 	} else {
-		str = strings.TrimLeft(str, "@")
-
-		users, data_err = Data.Filter(bson.D{{Key: "$or", Value: []bson.M{
-			{"names": str},
-			{"usernames": str},
-		}}})
+		if strings.HasPrefix(str, "@") {
+			str = strings.TrimLeft(str, "@")
+			users, data_err = Data.Filter(bson.D{{Key: "usernames", Value: str}})
+		} else {
+			users, data_err = Data.Filter(bson.D{{Key: "names", Value: str}})
+		}
 	}
 
 	results := make(tele.Results, 0, len(users))
 
-	if data_err != nil {
-		fmt.Printf("error: %v\n", data_err)
-		return ctx.Answer(nil)
-	} else {
+	if data_err == nil {
 		for _, u := range users {
 			name, id := "", u.TelegramID
 
@@ -866,8 +862,6 @@ func QueryHandler(ctx tele.Context) error {
 		results[i].SetResultID(strconv.Itoa(i))
 		results[i].SetParseMode(tele.ModeHTML)
 	}
-
-	fmt.Printf("Results: %v", results)
 
 	return ctx.Answer(&tele.QueryResponse{
 		Results:   results,
