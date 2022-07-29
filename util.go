@@ -109,7 +109,7 @@ func DisplayUser(user *User) string {
 		),
 		BoolToStr(
 			len(user.Usernames) > 1,
-			"\n\nHeld the follwing usernames:\n\t- <code>"+usernames+"</code>", "",
+			"\n\nHeld the follwing username"+BoolToStr(len(user.Usernames) > 2, "s", "")+":\n\t- <code>"+usernames+"</code>", "",
 		),
 		BoolToStr(
 			len(user.AliasIDs) > 0,
