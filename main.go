@@ -49,6 +49,7 @@ func ChanLog(input string) {
 			Bot.Send(
 				chat,
 				input,
+				tele.ModeHTML,
 			)
 		} else {
 			log.Printf("Error: %v\n", err)
@@ -65,6 +66,7 @@ func ChanLogf(format string, a ...any) {
 				Bot.Send(
 					chat,
 					fmt.Sprintf(format, a...),
+					tele.ModeHTML,
 				)
 			} else {
 				log.Printf("Error")
@@ -230,6 +232,7 @@ func init() {
 	Bot.Handle("/"+CMD_RECORD, RecordHandler)
 	Bot.Handle("/"+CMD_CREDITS, CreditsHandler)
 
+	Bot.Handle(SetPermBtn, SetPermBtnHandler)
 	Bot.Handle(SetHelpBtn, SetHelpBtnHandler)
 	Bot.Handle(RegHelpBtn, RegHelpBtnHandler)
 	Bot.Handle(PermHelpBtn, PermHelpBtnHandler)
@@ -262,23 +265,23 @@ func main() {
 
 	log_term := make(chan bool, 2)
 
-	group.Add(1)
-	go func(group *sync.WaitGroup, channel <-chan bool) {
-		ticker := time.NewTicker(20 * time.Minute)
+	// group.Add(1)
+	// go func(group *sync.WaitGroup, channel <-chan bool) {
+	// 	ticker := time.NewTicker(20 * time.Minute)
 
-	loop:
-		for {
-			select {
-			case <-ticker.C:
-				log.Println("listening..")
-				ChanLog("Still online.")
-			case <-channel:
-				break loop
-			}
-		}
+	// loop:
+	// 	for {
+	// 		select {
+	// 		case <-ticker.C:
+	// 			log.Println("listening..")
+	// 			ChanLog("Still online.")
+	// 		case <-channel:
+	// 			break loop
+	// 		}
+	// 	}
 
-		group.Done()
-	}(&group, log_term)
+	// 	group.Done()
+	// }(&group, log_term)
 
 	ChanLog("Bot is running.")
 	if polling {

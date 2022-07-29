@@ -36,9 +36,10 @@ const (
 	BTN_UPLOAD_RESULT = "uploadResultBtn"
 	BTN_SET_HELP      = "setCommandHelpBtn"
 	BTN_PERM_HELP     = "permComandHelpBtn"
+	BTN_SET_PERM      = "setPermissionBtn"
 
 	BTN_CANCEL_OPERATOR_CONFIRMATION = "cancelBtn"
-	Btn_CONFIRM_OPERATOR             = "confirmOperatorBtn"
+	BTN_CONFIRM_OPERATOR             = "confirmOperatorBtn"
 
 	BUFF_FILE_PATH = "./b.txt"
 
@@ -84,8 +85,9 @@ var (
 		BTN_UPLOAD_RESULT:                1,
 		BTN_SET_HELP:                     2,
 		BTN_PERM_HELP:                    3,
+		BTN_SET_PERM:                     3,
 		BTN_CANCEL_OPERATOR_CONFIRMATION: 4,
-		Btn_CONFIRM_OPERATOR:             4,
+		BTN_CONFIRM_OPERATOR:             4,
 
 		tele.OnQuery: 1,
 	}
@@ -115,15 +117,17 @@ var (
 		CMD_SET: "Set description to a user record.\n" +
 			"Syntax:\n\n/set <ID/reply-to-message> <description>\n\n" +
 			"Example:\n\n/set 6969669 My brother-in-law.\n",
-		CMD_PERM: "Check and set the permission levels of registered users.\n\n" +
-			"Permissions are represented as numbers. The higher the number, the more a user can access.\n" +
+		CMD_PERM: "You can allow others to use your bot, but " +
+			"you may not want to let them have complete access. Therefore, the bot comes with a permission system " +
+			"that allows you to control how much access you want to give, by granting certain people certain permissions.\n\n" +
+			"Permissions are represented as numbers. The higher the number, the more a user can access.\n\n" +
 			"The available permissions are:\n\n" +
 			"0 - No access\n" +
 			"1 - Read-only\n" +
 			"2 - Read/Write\n" +
 			"3 - Operator\n" +
 			"4 - Owner\n\n" +
-			"As for the commands, each one requires at least the follwing permissions:\n\n" +
+			"Each command requires at minimum permission level as follows:\n\n" +
 			strings.Join(MaptoSlice(Permissions, func(k string, v int) (string, error) {
 				if !strings.HasSuffix(k, "Btn") && k != "\aquery" {
 					return fmt.Sprintf("/%s: %d", k, v), nil
@@ -131,8 +135,13 @@ var (
 					return "", errors.New("must be a command")
 				}
 			}), "\n") +
-			"\n\n" +
-			"Note: In order to grant other users operator access, you must be the owner of the bot.\n\n" +
+			"\n\nBy default, every newly registered user has permission level 0, " +
+			"which means that they can't interract with the bot at all.\n\n" +
+			"You can increase the amount of control they have, with the /perm command.\n\n" +
+			"By granting them permission level 1, you only allow them to use the /recall command and inline queries.\n\n" +
+			"Permission level 2 unlocks the rest of the commands for the user, except for the /perm.\n\n" +
+			"Permission level 3 is the operator eccess permission. Users with this permission can grant or revoke others' " +
+			"permissions, but they obviously can't grant others permission level 3. Only the owner of the bot can do that.\n\n" +
 			"Syntax:\n\n" +
 			"- /perm <ID/reply-to-message>\n- /perm <ID/reply-to-message> set <permission-level>",
 	}
@@ -141,13 +150,17 @@ var (
 
 	// Buttons
 
+	SetPermBtn = &tele.Btn{
+		Unique: BTN_SET_PERM,
+	}
+
 	CancelOperatorConfirmationBtn = &tele.Btn{
 		Unique: BTN_CANCEL_OPERATOR_CONFIRMATION,
 		Text:   "Cancel",
 	}
 
 	ConfirmOperatorBtn = &tele.Btn{
-		Unique: Btn_CONFIRM_OPERATOR,
+		Unique: BTN_CONFIRM_OPERATOR,
 		Text:   "Confirm",
 	}
 
@@ -202,6 +215,61 @@ var (
 			Text:   "PM me",
 			URL:    "https://t.me/" + Bot.Me.Username + "?start=help",
 		}
+	}
+
+	SetPermKeyboard = func(isOwner bool, user int64) *tele.ReplyMarkup {
+		var markup *tele.ReplyMarkup
+
+		var (
+			none_btn = tele.Btn{
+				Unique: BTN_SET_PERM,
+				Text:   "None",
+				Data:   fmt.Sprintf("0:%d", user),
+			}.Inline()
+
+			readonly_btn = tele.Btn{
+				Unique: BTN_SET_PERM,
+				Text:   "Read-only",
+				Data:   fmt.Sprintf("1:%d", user),
+			}.Inline()
+
+			read_write_btn = tele.Btn{
+				Unique: BTN_SET_PERM,
+				Text:   "Read/Write",
+				Data:   fmt.Sprintf("2:%d", user),
+			}.Inline()
+		)
+
+		if isOwner {
+			markup = &tele.ReplyMarkup{
+				InlineKeyboard: [][]tele.InlineButton{
+					{
+						*none_btn,
+						*readonly_btn,
+						*read_write_btn,
+					},
+					{
+						*tele.Btn{
+							Unique: BTN_SET_PERM,
+							Text:   "Operator",
+							Data:   fmt.Sprintf("3:%d", user),
+						}.Inline(),
+					},
+				},
+			}
+		} else {
+			markup = &tele.ReplyMarkup{
+				InlineKeyboard: [][]tele.InlineButton{
+					{
+						*none_btn,
+						*readonly_btn,
+						*read_write_btn,
+					},
+				},
+			}
+		}
+
+		return markup
 	}
 
 	OperatorConfirmationKeyboard = &tele.ReplyMarkup{
@@ -441,6 +509,18 @@ func ConfirmOperatorBtnHandler(c tele.Context) error {
 		return c.Edit("Could not perform this action.")
 	}
 
+	// logging
+
+	name := c.Message().Sender.FirstName + " " + c.Message().Sender.LastName
+
+	ChanLogf("#op_confirm #perm\n[<code>%d</code>] %shas granted ID <code>%d</code> operator access.",
+		Config.OwnerTelegramID,
+		BoolToStr(name != "", name+" ", ""),
+		user_to_confirm,
+	)
+
+	// returning
+
 	return c.Edit("User is now an operator!")
 }
 
@@ -642,6 +722,22 @@ func AliasHandler(ctx tele.Context) error {
 		return ctx.Reply("Unknown mode value.")
 	}
 
+	// logging
+
+	name := ctx.Message().Sender.FirstName + " " + ctx.Message().Sender.LastName
+
+	ChanLogf("#alias\n[<code>%d</code>] %shas %s alias%s %s ID <code>%d</code>:\n\t- %s",
+		ctx.Message().Sender.ID,
+		BoolToStr(name != "", name+" ", ""),
+		BoolToStr(remove, "removed", "added"),
+		BoolToStr(len(values) > 1, "es", ""),
+		BoolToStr(remove, "from", "to"),
+		id,
+		strings.Join(values, "\n\t- "),
+	)
+
+	// returning
+
 	return ctx.Reply(fmt.Sprintf("Alias%s %s.", BoolToStr(len(values) > 1, "es", ""), BoolToStr(remove, "removed", "added")))
 }
 
@@ -714,6 +810,19 @@ func RecordHandler(ctx tele.Context) error {
 		return ctx.Reply("Could not complete this action.")
 	}
 
+	// logging
+
+	name := ctx.Message().Sender.FirstName + " " + ctx.Message().Sender.LastName
+
+	ChanLogf("#record\n[<code>%d</code>] %shas recorded ID <code>%d</code>:\n\n%s",
+		ctx.Message().Sender.ID,
+		BoolToStr(name != "", name+" ", ""),
+		id,
+		RecordToStr(record, ""),
+	)
+
+	// returning
+
 	return ctx.Reply("Recorded.")
 }
 
@@ -784,6 +893,18 @@ func RegHandler(ctx tele.Context) error {
 		return ctx.Reply("Could not perform this operation.")
 	}
 
+	// logging
+
+	name := ctx.Message().Sender.FirstName + " " + ctx.Message().Sender.LastName
+
+	ChanLogf("#reg\n[<code>%d</code>] %shas registered ID <code>%d</code>.",
+		ctx.Message().Sender.ID,
+		BoolToStr(name != "", name+" ", ""),
+		id,
+	)
+
+	// returning
+
 	return ctx.Reply("User registered.")
 }
 
@@ -809,6 +930,19 @@ func UnregHandler(ctx tele.Context) error {
 		log.Printf("error removing a user by ID: %v\n", id)
 		return ctx.Reply("User not found.")
 	} else {
+
+		// logging
+
+		name := ctx.Message().Sender.FirstName + " " + ctx.Message().Sender.LastName
+
+		ChanLogf("#unreg\n[<code>%d</code>] %shas unregistered ID <code>%d</code>.",
+			ctx.Message().Sender.ID,
+			BoolToStr(name != "", name+" ", ""),
+			id,
+		)
+
+		// returning
+
 		return ctx.Reply("User removed.")
 	}
 }
@@ -941,6 +1075,19 @@ func SetHandler(c tele.Context) error {
 		return c.Reply("Could not perform this operation.")
 	}
 
+	// logging
+
+	name := c.Message().Sender.FirstName + " " + c.Message().Sender.LastName
+
+	ChanLogf("#description\n[<code>%d</code>] %shas updated the description for ID <code>%d</code>:\n\n\"%s\"",
+		c.Message().Sender.ID,
+		BoolToStr(name != "", name+" ", ""),
+		id,
+		desc,
+	)
+
+	// returning
+
 	return c.Reply("Description set.")
 }
 
@@ -954,6 +1101,8 @@ func PermHandler(c tele.Context) error {
 		perm string
 		u    User
 
+		isOwner bool
+
 		set      = false
 		new_perm int
 
@@ -961,6 +1110,10 @@ func PermHandler(c tele.Context) error {
 		parse_err      error
 		data_err       error
 	)
+
+	if c.Message().Sender.ID == Config.OwnerTelegramID {
+		isOwner = true
+	}
 
 	// Acquire ID
 
@@ -1027,8 +1180,9 @@ func PermHandler(c tele.Context) error {
 		if new_perm >= 4 {
 			return c.Reply("You can't grant <b>owner</b> access to other.")
 		} else if new_perm >= 3 {
-			if c.Message().Sender.ID == Config.OwnerTelegramID {
-				OperatorConfirmationKeyboard.InlineKeyboard[0][1].Data = fmt.Sprintf("%d", id)
+			if isOwner {
+				keyboard := *OperatorConfirmationKeyboard
+				keyboard.InlineKeyboard[0][1].Data = fmt.Sprintf("%d", id)
 
 				return c.Reply(
 					"You're about to grant this user <b>operator</b> access. Are you sure?",
@@ -1047,6 +1201,21 @@ func PermHandler(c tele.Context) error {
 				return c.Reply("Could not perform this action.")
 			}
 
+			// logging
+
+			name := c.Message().Sender.FirstName + " " + c.Message().Sender.LastName
+
+			ChanLogf(
+				"#permission #%s\n[<code>%d</code>] %shas updated the permission level of ID <code>%d</code> to <b>%d</b>.",
+				BoolToStr(isOwner, "owner", "operator"),
+				c.Message().Sender.ID,
+				BoolToStr(name != "", name+" ", ""),
+				id,
+				new_perm,
+			)
+
+			// returning
+
 			return c.Reply("Permission set.")
 		}
 	} else {
@@ -1064,6 +1233,98 @@ func PermHandler(c tele.Context) error {
 			perm = "no"
 		}
 
-		return c.Reply("This user has <b>"+perm+"</b> access.", tele.ModeHTML)
+		var keyboard *tele.ReplyMarkup
+		var edit_prompt = ""
+
+		if c.Chat().ID == c.Sender().ID && (id != Config.OwnerTelegramID) {
+			keyboard = SetPermKeyboard(c.Sender().ID == Config.OwnerTelegramID, id)
+			edit_prompt = "\n\nYou can edit the user's permission:"
+		}
+
+		return c.Reply("This user has <b>"+perm+"</b> access."+edit_prompt, keyboard, tele.ModeHTML)
+	}
+}
+
+func SetPermBtnHandler(c tele.Context) error {
+	var (
+		id   int64
+		user User
+		perm int
+
+		isOwner bool
+
+		parse_err error
+		data_err  error
+	)
+
+	if c.Callback().Sender.ID == Config.OwnerTelegramID {
+		isOwner = true
+	}
+
+	p, i, ok := strings.Cut(c.Callback().Data, ":")
+
+	if !ok {
+		return c.Edit("Error: unknown callback data values \"" + c.Callback().Data + "\".")
+	}
+
+	id, parse_err = strconv.ParseInt(i, 0, 64)
+
+	if parse_err != nil {
+		log.Printf("error parsing IDs: %v\n", parse_err)
+		return c.Edit("Invalid ID.")
+	}
+
+	switch p {
+	case "0":
+		perm = 0
+	case "1":
+		perm = 1
+	case "2":
+		perm = 2
+	case "3":
+		keyboard := *OperatorConfirmationKeyboard
+		keyboard.InlineKeyboard[0][1].Data = fmt.Sprintf("%d", id)
+
+		return c.Edit(
+			"You're about to grant this user <b>operator</b> access. Are you sure?",
+			&keyboard,
+			tele.ModeHTML,
+		)
+	default:
+		return c.Edit("Error: unknown callback data value: \"" + c.Callback().Data + "\".")
+	}
+
+	user, data_err = Data.FindByID(id)
+
+	if data_err != nil {
+		log.Printf("error querying ID: %v\n", data_err)
+		return c.Edit("User not found.")
+	}
+
+	user.Permission = perm
+
+	err := Data.ReplaceByID(id, user)
+
+	if err != nil {
+		log.Printf("error updating user permission: %v\n", err)
+		return c.Edit("Could not perform this action.")
+	} else {
+
+		// logging
+
+		name := c.Callback().Sender.FirstName + " " + c.Callback().Sender.LastName
+
+		ChanLogf(
+			"#permission #%s\n[<code>%d</code>] %shas updated the permission level of ID <code>%d</code> to <b>%d</b>.",
+			BoolToStr(isOwner, "owner", "operator"),
+			c.Callback().Sender.ID,
+			BoolToStr(name != "", name+" ", ""),
+			id,
+			perm,
+		)
+
+		// returning
+
+		return c.Edit("Permission updated.")
 	}
 }
