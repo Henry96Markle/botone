@@ -572,8 +572,11 @@ func AliasHandler(ctx tele.Context) error {
 
 	if mode == "name" {
 
-		filtered_values := Undupe(values, user.Names)
-		err := Data.Names(remove, id, filtered_values...)
+		if !remove {
+			values = Undupe(values, user.Names)
+		}
+
+		err := Data.Names(remove, id, values...)
 
 		if err != nil {
 			log.Printf(
@@ -587,11 +590,14 @@ func AliasHandler(ctx tele.Context) error {
 		}
 	} else if mode == "username" {
 
-		filtered_values := Undupe(values, user.Usernames)
 		usernames := make([]string, 0, len(values))
 
-		for _, v := range filtered_values {
+		for _, v := range values {
 			usernames = append(usernames, strings.TrimLeft(v, "@"))
+		}
+
+		if !remove {
+			usernames = Undupe(usernames, user.Usernames)
 		}
 
 		err := Data.Usernames(remove, id, usernames...)
@@ -608,7 +614,8 @@ func AliasHandler(ctx tele.Context) error {
 		}
 	} else if mode == "id" {
 
-		filtered_values := Undupe(Map(values, func(s string) (int64, error) {
+		var filtered_values []int64
+		mapped := Map(values, func(s string) (int64, error) {
 			i, e := strconv.ParseInt(s, 0, 64)
 
 			if e == nil {
@@ -617,7 +624,13 @@ func AliasHandler(ctx tele.Context) error {
 				log.Printf("error parsing string \"%s\": %v\n", s, e)
 				return 0, e
 			}
-		}), user.AliasIDs)
+		})
+
+		if !remove {
+			filtered_values = Undupe(mapped, user.AliasIDs)
+		} else {
+			filtered_values = mapped
+		}
 
 		err := Data.Aliases(remove, id, filtered_values...)
 

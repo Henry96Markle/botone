@@ -211,11 +211,22 @@ func (d Database) Usernames(pull bool, id int64, usernames ...string) error {
 		operator = "$in"
 	}
 
-	_, err := d.Collection().UpdateOne(
-		context.TODO(),
-		bson.D{
-			{Key: "tg_id", Value: id}},
-		bson.D{{Key: modifier, Value: bson.D{{Key: "usernames", Value: bson.D{{Key: operator, Value: usernames}}}}}})
+	var err error
+
+	if len(usernames) > 1 {
+		_, err = d.Collection().UpdateOne(
+			context.TODO(),
+			bson.D{
+				{Key: "tg_id", Value: id}},
+			bson.D{{Key: modifier, Value: bson.D{{Key: "usernames", Value: bson.D{{Key: operator, Value: usernames}}}}}})
+	} else if len(usernames) == 1 {
+		_, err = d.Collection().UpdateOne(
+			context.TODO(),
+			bson.D{
+				{Key: "tg_id", Value: id}},
+			bson.D{{Key: modifier, Value: bson.D{{Key: "usernames", Value: usernames[0]}}}})
+	}
+
 	return err
 }
 
