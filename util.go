@@ -186,3 +186,19 @@ func MaptoSlice[A comparable, B any, K any](m map[A]B, operator func(A, B) (K, e
 
 	return res
 }
+
+func Authorize(id int64, action string) bool {
+	perm, ok := Permissions[action]
+
+	if !ok {
+		return false
+	}
+
+	u, err := Data.FindByID(id)
+
+	if err != nil {
+		return false
+	}
+
+	return u.Permission >= perm
+}

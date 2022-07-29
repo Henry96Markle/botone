@@ -949,6 +949,10 @@ func UnregHandler(ctx tele.Context) error {
 		}
 	}
 
+	if id == Config.OwnerTelegramID {
+		return ctx.Reply("You can't remove the owner's ID.")
+	}
+
 	if _, e := Data.RemoveByID(id); e != nil {
 		log.Printf("error removing a user by ID: %v\n", id)
 		return ctx.Reply("User not found.")
@@ -1305,6 +1309,12 @@ func SetPermBtnHandler(c tele.Context) error {
 	case "2":
 		perm = 2
 	case "3":
+		ok := Authorize(c.Callback().Sender.ID, BTN_CONFIRM_OPERATOR)
+
+		if !ok {
+			return c.Respond(&tele.CallbackResponse{Text: "Authorization failed."})
+		}
+
 		keyboard := *OperatorConfirmationKeyboard
 		keyboard.InlineKeyboard[0][1].Data = fmt.Sprintf("%d", id)
 
