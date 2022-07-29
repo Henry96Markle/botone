@@ -452,7 +452,10 @@ func RecallHandler(ctx tele.Context) error {
 
 		sender, _ := Data.FindByID(ctx.Sender().ID)
 
-		if (sender.Permission >= 2) && (ctx.Chat().ID == ctx.Sender().ID) {
+		if (sender.Permission >= 2) &&
+			(ctx.Chat().ID == ctx.Sender().ID) &&
+			(ctx.Sender().ID != Config.OwnerTelegramID) {
+
 			keyboard = &tele.ReplyMarkup{
 				InlineKeyboard: [][]tele.InlineButton{
 					{*deleteBtn.Inline()},
