@@ -97,10 +97,11 @@ func DisplayUser(user *User) string {
 	}
 
 	return fmt.Sprintf(
-		"<b>Name:</b> %s\n<b>Username:</b> %s\n<b>ID:</b> <code>%d</code>%s%s%s%s",
+		"<b>Name:</b> %s\n<b>Username:</b> %s\n<b>ID:</b> <code>%d</code>%s%s%s%s%s",
 		BoolToStr(len(user.Names) > 0, name, ""),
 		BoolToStr(len(user.Usernames) > 0, username, ""),
 		user.TelegramID,
+		BoolToStr(len(user.Description) > 0, "\n\n"+user.Description, ""),
 		BoolToStr(
 			len(user.Names) > 1, // The the last element in user.Names slice won't be displayed here.
 			"\n\nAlso known by the "+BoolToStr(len(user.Names) > 2, "names", "name")+":\n\t- "+names,
@@ -169,4 +170,19 @@ func Parse(a string) (string, int64, bool) {
 	} else {
 		return "", id, true
 	}
+}
+
+// Turns a map into a slice
+func MaptoSlice[A comparable, B any, K any](m map[A]B, operator func(A, B) (K, error)) []K {
+	res := make([]K, 0, len(m))
+
+	for k, v := range m {
+		value, err := operator(k, v)
+
+		if err == nil {
+			res = append(res, value)
+		}
+	}
+
+	return res
 }

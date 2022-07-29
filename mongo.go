@@ -19,13 +19,14 @@ type Record struct {
 
 // User structure is a wrapper for the MongoDB document.
 type User struct {
-	ID         primitive.ObjectID    `bson:"_id" json:"_id"`
-	Names      []string              `bson:"names" json:"names"`
-	Usernames  []string              `bson:"usernames" json:"usernames"`
-	TelegramID int64                 `bson:"tg_id" json:"tg_id"`
-	AliasIDs   []int64               `bson:"alias_ids" json:"alias_ids"`
-	Permission int                   `bson:"permission_level" json:"permission_level"`
-	Records    map[string]([]Record) `bson:"records" json:"records"`
+	ID          primitive.ObjectID    `bson:"_id" json:"_id"`
+	Names       []string              `bson:"names" json:"names"`
+	Usernames   []string              `bson:"usernames" json:"usernames"`
+	TelegramID  int64                 `bson:"tg_id" json:"tg_id"`
+	AliasIDs    []int64               `bson:"alias_ids" json:"alias_ids"`
+	Permission  int                   `bson:"permission_level" json:"permission_level"`
+	Description string                `bson:"description" json:"description"`
+	Records     map[string]([]Record) `bson:"records" json:"records"`
 }
 
 type Database struct {

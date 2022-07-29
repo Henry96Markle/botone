@@ -65,7 +65,7 @@ var (
 	}
 
 	Permissions = map[string]int{
-		CMD_SET:     3,
+		CMD_SET:     2,
 		CMD_ALIAS:   2,
 		CMD_RECORD:  2,
 		CMD_UNREG:   2,
@@ -73,7 +73,7 @@ var (
 		CMD_RECALL:  1,
 		CMD_HELP:    1,
 		CMD_CREDITS: 1,
-		CMD_PERM:    1,
+		CMD_PERM:    3,
 
 		BTN_RECORD_HELP:                  2,
 		BTN_ALIAS_HELP:                   2,
@@ -82,8 +82,8 @@ var (
 		BTN_REG_HELP:                     2,
 		BTN_UNREG_HELP:                   2,
 		BTN_UPLOAD_RESULT:                1,
-		BTN_SET_HELP:                     3,
-		BTN_PERM_HELP:                    1,
+		BTN_SET_HELP:                     2,
+		BTN_PERM_HELP:                    3,
 		BTN_CANCEL_OPERATOR_CONFIRMATION: 4,
 		Btn_CONFIRM_OPERATOR:             4,
 
@@ -112,11 +112,29 @@ var (
 		CMD_UNREG: "There are some people you just want to forget.\n" +
 			"Unregister and delete them from the database.\n\nSyntax:\n\n" +
 			"- /unreg <ID/reply-to-message>",
-		CMD_SET: "You can grant some users access to the database. Either read-only or read/write permissions.\n" +
-			"The permissions available are:\n\n- [0] none\n- [1] read\n- [2] write\n\n" +
-			"Syntax:\n\n/set <ID> <permission>\n\nExamples:\n\n/set 6969669 read\n/set 1070000 write\n/set 69 none",
-		CMD_PERM: "View the permission level of registered users.\n\nSyntax:\n\n" +
-			"/perm <ID/reply-to-message>",
+		CMD_SET: "Set description to a user record.\n" +
+			"Syntax:\n\n/set <ID/reply-to-message> <description>\n\n" +
+			"Example:\n\n/set 6969669 My brother-in-law.\n",
+		CMD_PERM: "Check and set the permission levels of registered users.\n\n" +
+			"Permissions are represented as numbers. The higher the number, the more a user can access.\n" +
+			"The available permissions are:\n\n" +
+			"0 - No access\n" +
+			"1 - Read-only\n" +
+			"2 - Read/Write\n" +
+			"3 - Operator\n" +
+			"4 - Owner\n\n" +
+			"As for the commands, each one requires at least the follwing permissions:\n\n" +
+			strings.Join(MaptoSlice(Permissions, func(k string, v int) (string, error) {
+				if !strings.HasSuffix(k, "Btn") && k != "\aquery" {
+					return fmt.Sprintf("/%s: %d", k, v), nil
+				} else {
+					return "", errors.New("must be a command")
+				}
+			}), "\n") +
+			"\n\n" +
+			"Note: In order to grant other users operator access, you must be the owner of the bot.\n\n" +
+			"Syntax:\n\n" +
+			"- /perm <ID/reply-to-message>\n- /perm <ID/reply-to-message> set <permission-level>",
 	}
 
 	StringBuffer = ""
@@ -688,7 +706,7 @@ func RecordHandler(ctx tele.Context) error {
 
 // Syntax:
 //
-//	- /rec <ID/reply-to-message>
+//	- /rec <ID/reply-to-message> [description]
 func RegHandler(ctx tele.Context) error {
 	var (
 		id int64
@@ -698,6 +716,8 @@ func RegHandler(ctx tele.Context) error {
 
 		sender *tele.User
 		user   User
+
+		description = ""
 	)
 
 	if len(ctx.Args()) == 0 {
@@ -711,6 +731,10 @@ func RegHandler(ctx tele.Context) error {
 		if id, parse_err = strconv.ParseInt(ctx.Args()[0], 0, 64); parse_err != nil {
 			return ctx.Reply("Invalid ID.")
 		}
+
+		if len(ctx.Args()) >= 2 {
+			description = strings.Join(ctx.Args()[1:], " ")
+		}
 	}
 
 	_, data_err = Data.FindByID(id)
@@ -720,12 +744,13 @@ func RegHandler(ctx tele.Context) error {
 	}
 
 	user = User{
-		ID:         primitive.NewObjectID(),
-		TelegramID: id,
-		Names:      make([]string, 0, 1),
-		Usernames:  make([]string, 0, 1),
-		AliasIDs:   make([]int64, 0),
-		Records:    map[string][]Record{},
+		ID:          primitive.NewObjectID(),
+		TelegramID:  id,
+		Names:       make([]string, 0, 1),
+		Usernames:   make([]string, 0, 1),
+		AliasIDs:    make([]int64, 0),
+		Description: description,
+		Records:     map[string][]Record{},
 	}
 
 	if sender != nil {
@@ -847,146 +872,191 @@ func UnregHelpBtnHandler(ctx tele.Context) error {
 	return ctx.Edit(syntax, BackToHelpKeyboard)
 }
 
-// Allow/disallow a registered user to access the database.
+// Set a description
 //
 // Syntax:
 //
-//	- /set <ID/reply-to-message> <permission-level>
-//
-// Permission:
-//	- none / 0
-//	- read / 1
-//	- write / 2
+//	- /set <ID/reply-to-message> <description>
 func SetHandler(c tele.Context) error {
 	var (
-		id             int64
-		permission     string
-		permission_int int
-		user           User
+		id   int64
+		user User
 
-		parse_err      error
-		permission_err error
-		data_err       error
+		desc string
+
+		parse_err error
+		data_err  error
 	)
 
-	// Obtain ID
-
-	if len(c.Args()) == 0 {
+	switch len(c.Args()) {
+	case 0:
 		return c.Reply("Insufficient arguments.")
-	} else if len(c.Args()) == 1 {
-		permission = c.Args()[0]
-
-		if c.Message().ReplyTo == nil || c.Message().ReplyTo.Sender == nil {
-			log.Printf("REPLYTO: %v\nSENDER: %v\n", c.Message().ReplyTo, c.Message().ReplyTo.Sender)
-			return c.Reply("ID required.")
-		} else {
+	case 1:
+		// /set <reply-to-message> <description>
+		if c.Message().ReplyTo != nil && c.Message().ReplyTo.Sender != nil {
 			id = c.Message().ReplyTo.Sender.ID
+		} else {
+			return c.Reply("Insufficient arguments.")
 		}
-	} else {
-		permission = c.Args()[1]
+
+		desc = c.Args()[0]
+	default:
+		// /set <ID> <description>
 		id, parse_err = strconv.ParseInt(c.Args()[0], 0, 64)
 
+		ind := 1
+
 		if parse_err != nil {
-			return c.Reply("Invalid ID.")
+			if c.Message().ReplyTo != nil && c.Message().ReplyTo.Sender != nil {
+				id = c.Message().ReplyTo.Sender.ID
+				ind = 0
+			} else {
+				return c.Reply("ID invalid or missing.")
+			}
 		}
+
+		desc = strings.Join(c.Args()[ind:], " ")
 	}
-
-	permission_int, permission_err = strconv.Atoi(permission)
-
-	switch {
-	case parse_err == nil &&
-		(permission_err == nil ||
-			permission == "none" ||
-			permission == "read" ||
-			permission == "write"):
-	default:
-		return c.Reply("Invalid permission value.")
-	}
-
-	// Query user
 
 	user, data_err = Data.FindByID(id)
 
 	if data_err != nil {
-		log.Printf("error when querying a user by ID: %v\n", data_err)
+		log.Printf("error when querying user ID: %v\n", data_err)
 		return c.Reply("User not found.")
 	}
 
-	if user.TelegramID == Config.OwnerTelegramID {
-		return c.Reply("You're the owner; you can't revoke your own access.")
-	}
-
-	if permission_err != nil {
-		switch permission {
-		case "none":
-			permission_int = 0
-		case "read":
-			permission_int = 1
-		case "write":
-			permission_int = 2
-		}
-	}
-
-	if permission_int == 3 {
-		if c.Message().Sender.ID == Config.OwnerTelegramID {
-			OperatorConfirmationKeyboard.InlineKeyboard[0][1].Data = fmt.Sprintf("%d", id)
-
-			return c.Reply(
-				"You're about to grant this user <b>operator</b> access. Are you sure?",
-				OperatorConfirmationKeyboard,
-				tele.ModeHTML)
-		} else {
-			return c.Reply("You must be the owner to grant others <b>operator</b> access.")
-		}
-	}
-
-	user.Permission = permission_int
+	user.Description = desc
 
 	err := Data.ReplaceByID(id, user)
 
 	if err != nil {
-		log.Printf("error updating user: %v\n", err)
-		return c.Reply("Could not perform this action.")
+		log.Printf("error when replacing user: %v\n", err)
+		return c.Reply("Could not perform this operation.")
 	}
 
-	return c.Reply("Permission set.")
+	return c.Reply("Description set.")
 }
 
+// Syntax:
+//
+//	- /perm <ID/reply-to-message>
+//	- /perm <ID/reply-to-message> set <permission-level>
 func PermHandler(c tele.Context) error {
 	var (
 		id   int64
 		perm string
 		u    User
 
-		parse_err error
+		set      = false
+		new_perm int
+
+		perm_parse_err error
+		parse_err      error
+		data_err       error
 	)
 
-	if len(c.Args()) == 0 {
+	// Acquire ID
+
+	switch len(c.Args()) {
+	case 0:
+		// /perm <reply-to-message>
 		if c.Message().ReplyTo != nil && c.Message().ReplyTo.Sender != nil {
 			id = c.Message().ReplyTo.Sender.ID
 		} else {
 			return c.Reply("ID required.")
 		}
-	} else {
+
+	case 1:
+		// /perm <ID>
 		id, parse_err = strconv.ParseInt(c.Args()[0], 0, 64)
 
-		if parse_err != nil {
-			return c.Reply("Invalid ID.")
+	case 2:
+		// /perm <reply-to-message> set <permission-level>
+		if c.Message().ReplyTo != nil && c.Message().ReplyTo.Sender != nil {
+			id = c.Message().ReplyTo.Sender.ID
+		} else {
+			return c.Reply("ID required.")
+		}
+
+		if c.Args()[0] == "set" {
+			set = true
+			new_perm, perm_parse_err = strconv.Atoi(c.Args()[1])
+		} else {
+			return c.Reply("Invalid operation: \"" + c.Args()[0] + "\".")
+		}
+
+	default:
+		// /perm <ID> set <permission-level>
+		id, parse_err = strconv.ParseInt(c.Args()[0], 0, 64)
+
+		if c.Args()[1] == "set" {
+			set = true
+			new_perm, perm_parse_err = strconv.Atoi(c.Args()[2])
+		} else {
+			return c.Reply("Invalid operation: \"" + c.Args()[1] + "\".")
 		}
 	}
 
-	u, _ = Data.FindByID(id)
-
-	switch u.Permission {
-	case 1:
-		perm = "read-only"
-	case 2:
-		perm = "read/write"
-	case 3:
-		perm = "operator"
-	default:
-		perm = "no"
+	if parse_err != nil {
+		return c.Reply("Invalid ID.")
 	}
 
-	return c.Reply("This user has <b>"+perm+"</b> access.", tele.ModeHTML)
+	if perm_parse_err != nil {
+		return c.Reply("Invalid permission level.")
+	}
+
+	u, data_err = Data.FindByID(id)
+
+	if set {
+		if data_err != nil {
+			log.Printf("error when querying a user by ID: %v\n", data_err)
+			return c.Reply("User not found.")
+		}
+
+		if u.TelegramID == Config.OwnerTelegramID {
+			return c.Reply("You're the owner; you can't change your own permission level.")
+		}
+
+		if new_perm >= 4 {
+			return c.Reply("You can't grant <b>owner</b> access to other.")
+		} else if new_perm >= 3 {
+			if c.Message().Sender.ID == Config.OwnerTelegramID {
+				OperatorConfirmationKeyboard.InlineKeyboard[0][1].Data = fmt.Sprintf("%d", id)
+
+				return c.Reply(
+					"You're about to grant this user <b>operator</b> access. Are you sure?",
+					OperatorConfirmationKeyboard,
+					tele.ModeHTML)
+			} else {
+				return c.Reply("You must be the owner to grant others <b>operator</b> access.")
+			}
+		} else {
+			u.Permission = new_perm
+
+			err := Data.ReplaceByID(id, u)
+
+			if err != nil {
+				log.Printf("error updating user: %v\n", err)
+				return c.Reply("Could not perform this action.")
+			}
+
+			return c.Reply("Permission set.")
+		}
+	} else {
+
+		switch u.Permission {
+		case 1:
+			perm = "read-only"
+		case 2:
+			perm = "read/write"
+		case 3:
+			perm = "operator"
+		case 4:
+			perm = "owner"
+		default:
+			perm = "no"
+		}
+
+		return c.Reply("This user has <b>"+perm+"</b> access.", tele.ModeHTML)
+	}
 }
