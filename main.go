@@ -16,72 +16,13 @@ import (
 	"github.com/joho/godotenv"
 )
 
-type Configuration struct {
-	BotToken         string `json:"bot_token"`
-	OwnerTelegramID  int64  `json:"owner_telegram_id"`
-	ConnectionString string `json:"connection_string"`
-	LogChannelID     int64  `json:"log_channel_id"`
-	LoggingToChannel bool   `json:"logging_to_channel"`
-}
-
-const (
-	DATABASE_NAME   = "telegram"
-	COLLECTION_NAME = "user-records"
-)
-
-var (
-	Config *Configuration
-
-	Bot *tele.Bot
-
-	Data *Database
-
-	TermSig chan os.Signal
-
-	polling = false
-)
-
-func ChanLog(input string) {
-	if Bot != nil && Config.LoggingToChannel {
-
-		chat, err := Bot.ChatByID(Config.LogChannelID)
-		if err == nil {
-			Bot.Send(
-				chat,
-				input,
-				tele.ModeHTML,
-			)
-		} else {
-			log.Printf("Error: %v\n", err)
-		}
-	}
-}
-
-func ChanLogf(format string, a ...any) {
-	if Bot != nil && Config.LoggingToChannel {
-		if Bot != nil && Config.LoggingToChannel {
-
-			chat, err := Bot.ChatByID(Config.LogChannelID)
-			if err == nil {
-				Bot.Send(
-					chat,
-					fmt.Sprintf(format, a...),
-					tele.ModeHTML,
-				)
-			} else {
-				log.Printf("Error")
-			}
-		}
-	}
-}
-
 func init() {
 	TermSig = make(chan os.Signal, 1)
 	signal.Notify(TermSig, syscall.SIGINT, syscall.SIGTERM)
 
 	println("Initializing..")
 
-	flag.BoolVar(&polling, "poll", false, "set the bot to polling mode")
+	flag.BoolVar(&Polling, "poll", false, "set the bot to polling mode")
 	flag.Parse()
 
 	// Get configuration
@@ -152,7 +93,7 @@ func init() {
 
 	var pref tele.Settings
 
-	if polling {
+	if Polling {
 		pref = tele.Settings{
 			Token: Config.BotToken,
 			Poller: &tele.LongPoller{
@@ -285,7 +226,7 @@ func main() {
 	// }(&group, log_term)
 
 	ChanLog("Bot is running.")
-	if polling {
+	if Polling {
 		s := ""
 
 		fmt.Print("enter any key to terminate")

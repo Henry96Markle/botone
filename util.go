@@ -3,9 +3,46 @@ package main
 import (
 	"errors"
 	"fmt"
+	"log"
 	"strconv"
 	"strings"
+
+	tele "github.com/Henry96Markle/telebot"
 )
+
+func ChanLog(input string) {
+	if Bot != nil && Config.LoggingToChannel {
+
+		chat, err := Bot.ChatByID(Config.LogChannelID)
+		if err == nil {
+			Bot.Send(
+				chat,
+				input,
+				tele.ModeHTML,
+			)
+		} else {
+			log.Printf("Error: %v\n", err)
+		}
+	}
+}
+
+func ChanLogf(format string, a ...any) {
+	if Bot != nil && Config.LoggingToChannel {
+		if Bot != nil && Config.LoggingToChannel {
+
+			chat, err := Bot.ChatByID(Config.LogChannelID)
+			if err == nil {
+				Bot.Send(
+					chat,
+					fmt.Sprintf(format, a...),
+					tele.ModeHTML,
+				)
+			} else {
+				log.Printf("Error")
+			}
+		}
+	}
+}
 
 // Trims the "@" from the username string.
 func TrimUsername(s string) string { return strings.TrimLeft(s, "@") }
