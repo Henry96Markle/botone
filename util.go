@@ -23,6 +23,15 @@ func StrToBool(s string, tr string, fl string) (b bool, err error) {
 	}
 }
 
+// Returns either onTrue or onFalse, based on b.
+func ParseBool[K any](b bool, onTrue K, onFalse K) K {
+	if b {
+		return onFalse
+	} else {
+		return onFalse
+	}
+}
+
 func BoolToStr(b bool, str1 string, str2 string) string {
 	if b {
 		return str1
