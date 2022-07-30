@@ -513,7 +513,11 @@ func RecordHandler(ctx tele.Context) error {
 	f_user, f_err := Data.FindByID(id)
 
 	if f_err != nil {
-		return ctx.Reply("This user isn't registered.")
+		return ctx.Reply(MSG_ID_NOT_FOUND)
+	}
+
+	if (id == Config.OwnerTelegramID || f_user.Permission >= 4) && (ctx.Message().Sender.ID != Config.OwnerTelegramID) {
+		return ctx.Reply("You can't record an owner.")
 	}
 
 	_, ok := f_user.Records[category]
@@ -821,6 +825,10 @@ func SetHandler(c tele.Context) error {
 	if data_err != nil {
 		log.Printf(ERR_FMT_QUERY+"\n", data_err)
 		return c.Reply(MSG_ID_NOT_FOUND)
+	}
+
+	if (id == Config.OwnerTelegramID || user.Permission >= 4) && c.Message().Sender.ID != Config.OwnerTelegramID {
+		return c.Reply("You can't change owner's data.")
 	}
 
 	user.Description = desc
@@ -1137,4 +1145,219 @@ func DeleteEntryBtnHandler(c tele.Context) error {
 
 		return c.Edit("User unregistered.")
 	}
+}
+
+func DelrecHelpBtnHandler(c tele.Context) error {
+	s, ok := CommandSyntax[CMD_DELREC]
+
+	if !ok {
+		panic("command \"" + CMD_DELREC + "\" is not registered")
+	}
+
+	return c.Edit(s, BackToHelpKeyboard)
+}
+
+// Syntax:
+//
+//	/delrec <ID/reply-to-message> <category> [note-index] ..
+func DelrecHandler(c tele.Context) error {
+	var (
+		id   int64
+		user User
+
+		category  = ""
+		index     = ""
+		index_int = -1
+
+		all_recs_to_delete_exists = false
+		user_display              string
+
+		cat_to_delete        []Record
+		cat_to_delete_exists = false
+
+		rec_to_delete        Record
+		rec_to_delete_exists = false
+
+		parse_err  error
+		parse_err2 error
+		data_err   error
+	)
+
+	// Acquire ID & category & nore-index
+
+	switch len(c.Args()) {
+	// /delrec <reply-to-message>	-> delete all records of a user
+	case 0:
+		if c.Message().ReplyTo != nil && c.Message().ReplyTo.Sender != nil {
+			id = c.Message().ReplyTo.Sender.ID
+			goto SkipValidation
+		} else {
+			return c.Reply(MSG_ID_REQUIRED)
+		}
+	// /delrec <ID> 							-> delete all records from a user
+	// /delrec <reply-to-message> <category>	-> delete all records of a category from a user
+	case 1:
+		if c.Message().ReplyTo != nil && c.Message().ReplyTo.Sender != nil {
+			id = c.Message().ReplyTo.Sender.ID
+			category = c.Args()[0]
+		} else if id, parse_err = strconv.ParseInt(c.Args()[0], 0, 64); parse_err != nil {
+			return c.Reply(MSG_ID_REQUIRED)
+		}
+
+	// /delrec <ID> <category>								-> delete all records from a user
+	// /delrec <reply-to-message> <category> [note-index]	-> delete a single record from a category from a user
+	case 2:
+		if id, parse_err = strconv.ParseInt(c.Args()[0], 0, 64); parse_err == nil {
+			category = c.Args()[1]
+		} else if c.Message().ReplyTo != nil && c.Message().ReplyTo.Sender != nil {
+			id = c.Message().ReplyTo.Sender.ID
+			category = c.Args()[0]
+			index = c.Args()[1]
+		}
+
+	// /delrec <ID> <category> [note-index]	-> delete a single record from a category from a user
+	default:
+		if id, parse_err = strconv.ParseInt(c.Args()[0], 0, 64); parse_err == nil {
+			category = c.Args()[1]
+			index = c.Args()[2]
+		} else if c.Message().ReplyTo != nil && c.Message().ReplyTo.Sender != nil {
+			id = c.Message().ReplyTo.Sender.ID
+			category = c.Args()[0]
+			index = c.Args()[1]
+		}
+	}
+
+	// Validate index
+
+	if index_int, parse_err2 = strconv.Atoi(index); index != "" && parse_err2 != nil {
+		return c.Reply("Invalid index value.")
+	} else {
+		// Turn the index into zero-based
+		index_int--
+	}
+
+	// Check if user exists
+
+	user, data_err = Data.FindByID(id)
+
+	if data_err != nil {
+		log.Printf(ERR_FMT_QUERY+"\n", data_err)
+		return c.Reply(MSG_ID_NOT_FOUND)
+	}
+
+	if (id == Config.OwnerTelegramID || user.Permission >= 4) && c.Message().Sender.ID != Config.OwnerTelegramID {
+		return c.Reply("You can't modify owner's records.")
+	}
+
+	// Validate category if given
+
+	if category != "" {
+		k, exists := user.Records[category]
+
+		if !exists {
+			return c.Reply("Category \"" + category + "\" does not exist.")
+		}
+
+		// Check if note-index is within range, if given
+
+		if index != "" && (index_int >= len(k) || index_int < 0) {
+			return c.Reply("Note index is out of bounds.")
+		}
+	}
+
+	// Start deleting
+
+SkipValidation:
+
+	switch len(c.Args()) {
+	case 0:
+		all_recs_to_delete_exists = true
+		user_display = DisplayUser(&user)
+
+		user.Records = map[string][]Record{}
+	case 1:
+		if category != "" {
+			cat_to_delete_exists = true
+			cat_to_delete = user.Records[category]
+
+			delete(user.Records, category)
+		} else {
+			all_recs_to_delete_exists = true
+			user_display = DisplayUser(&user)
+
+			user.Records = map[string][]Record{}
+		}
+	case 2:
+		if index != "" {
+			rec_to_delete_exists = true
+			rec_to_delete = user.Records[category][index_int]
+
+			new_records := make([]Record, 0, len(user.Records[category])-1)
+			for i, r := range user.Records[category] {
+				if i != index_int {
+					new_records = append(new_records, r)
+				}
+			}
+			user.Records[category] = new_records
+		} else {
+			cat_to_delete_exists = true
+			cat_to_delete = user.Records[category]
+
+			delete(user.Records, category)
+		}
+	default:
+		rec_to_delete_exists = true
+		rec_to_delete = user.Records[category][index_int]
+
+		new_records := make([]Record, 0, len(user.Records[category])-1)
+		for i, r := range user.Records[category] {
+			if i != index_int {
+				new_records = append(new_records, r)
+			}
+		}
+		user.Records[category] = new_records
+	}
+
+	// Send to database
+
+	err := Data.ReplaceByID(id, user)
+	if err != nil {
+		log.Printf(ERR_FMT_UPDATE+"\n", err)
+		return c.Reply(MSG_COULD_NOT_PERFORM)
+	}
+
+	// logging
+
+	name := c.Message().Sender.FirstName + " " + c.Message().Sender.LastName
+
+	ChanLogf("#delrec\n[<code>%d</code>] %shas deleted %s from ID %d.%s.",
+		c.Sender().ID,
+		BoolToStr(name != "", name+" ", ""),
+		BoolToStr(
+			index != "",
+			"a record from category \""+category+"\"",
+			BoolToStr(category != "", "a category", "all records"),
+		),
+		id,
+		BoolToStr(
+			index != "" && rec_to_delete_exists,
+			"\n\nDeleted record:\n\n"+RecordToStr(rec_to_delete, ""),
+			BoolToStr(
+				category != "" && cat_to_delete_exists,
+				"\n\nDeleted record category \""+category+"\":\n\n\t"+strings.Join(RecordStrArr("\t", cat_to_delete...), "\n"),
+				BoolToStr(all_recs_to_delete_exists, "\n\n"+user_display, ""),
+			),
+		),
+	)
+
+	// returning
+
+	return c.Reply(fmt.Sprintf(
+		"%s removed.",
+		BoolToStr(
+			category != "",
+			BoolToStr(index != "", "Record", "\""+category+"\" category"),
+			"All records",
+		),
+	))
 }

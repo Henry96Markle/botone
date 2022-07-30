@@ -22,6 +22,7 @@ const (
 	CMD_SET     = "set"
 	CMD_CREDITS = "credits"
 	CMD_PERM    = "perm"
+	CMD_DELREC  = "delrec"
 
 	// Button unique strings
 
@@ -35,6 +36,7 @@ const (
 	BTN_SET_HELP      = "setCommandHelpBtn"
 	BTN_PERM_HELP     = "permComandHelpBtn"
 	BTN_SET_PERM      = "setPermissionBtn"
+	BTN_DELREC_HELP   = "delrecCommandHelpBtn"
 
 	BTN_DELETE_ENTRY = "deleteEntryBtn"
 
@@ -55,6 +57,9 @@ const (
 		"their most significant actions, so you don't have to worry about forgetting and feeling like " +
 		"everyone on telegram is the same person.\n\n" +
 		"Click on the buttons below, to learn each command."
+
+	HELP_DELREC = "Delete one record or more. You can delete a single record, an entire category, " +
+		"or all the records from a user.\n\nSyntax:\n\n/delrec <ID/reply-to-message> [category] [note index]"
 
 	HELP_RECALL = "Recall information about a person who's registered before. " +
 		"You can use IDs, usernames, or names.\n\nSyntax:\n\n" +
@@ -141,12 +146,13 @@ var (
 	TermSig chan os.Signal
 
 	Polling = false
+
 	// bot.go
 
 	Commands = []string{
 		CMD_HELP, CMD_REG, CMD_RECORD, CMD_ALIAS,
 		CMD_RECALL, CMD_UNREG, CMD_SET, CMD_CREDITS,
-		CMD_PERM,
+		CMD_PERM, CMD_DELREC,
 	}
 
 	CommandMap = map[string]func(tele.Context) error{
@@ -159,6 +165,7 @@ var (
 		CMD_UNREG:   UnregHandler,
 		CMD_SET:     SetHandler,
 		CMD_PERM:    PermHandler,
+		CMD_DELREC:  DelrecHandler,
 	}
 
 	Permissions = map[string]int{
@@ -170,12 +177,14 @@ var (
 		CMD_RECORD:  2,
 		CMD_UNREG:   2,
 		CMD_REG:     2,
+		CMD_DELREC:  2,
 		CMD_PERM:    3,
 
 		BTN_UPLOAD_RESULT:                1,
 		BTN_BACK_TO_HELP:                 1,
 		BTN_RECALL_HELP:                  1,
 		BTN_RECORD_HELP:                  2,
+		BTN_DELREC_HELP:                  2,
 		BTN_ALIAS_HELP:                   2,
 		BTN_REG_HELP:                     2,
 		BTN_UNREG_HELP:                   2,
@@ -198,18 +207,14 @@ var (
 	}
 
 	CommandSyntax = map[string]string{
-		CMD_REG: HELP_REG,
-
+		CMD_REG:    HELP_REG,
 		CMD_RECORD: HELP_RECORD,
-
 		CMD_RECALL: HELP_RECALL,
-
-		CMD_ALIAS: HELP_ALIAS,
-
-		CMD_HELP: HELP_HELP,
-
-		CMD_UNREG: HELP_UNREG,
-		CMD_SET:   HELP_SET,
+		CMD_ALIAS:  HELP_ALIAS,
+		CMD_HELP:   HELP_HELP,
+		CMD_UNREG:  HELP_UNREG,
+		CMD_SET:    HELP_SET,
+		CMD_DELREC: HELP_DELREC,
 		CMD_PERM: fmt.Sprintf(HELP_PERM, strings.Join(MaptoSlice(Permissions, func(k string, v int) (string, error) {
 			if !strings.HasSuffix(k, "Btn") && k != "\aquery" {
 				return fmt.Sprintf("/%s: %d", k, v), nil
@@ -222,6 +227,11 @@ var (
 	StringBuffer = ""
 
 	// Buttons
+
+	DelrecHelpBtn = &tele.Btn{
+		Unique: BTN_DELREC_HELP,
+		Text:   CMD_DELREC,
+	}
 
 	DeleteEntryBtn = &tele.Btn{
 		Unique: BTN_DELETE_ENTRY,
@@ -364,7 +374,8 @@ var (
 
 	HelpMainPageKeyboard = &tele.ReplyMarkup{
 		InlineKeyboard: [][]tele.InlineButton{
-			{*RecordHelpBtn.Inline(), *AliasHelpBtn.Inline(), *RecallHelpBtn.Inline()},
+			{*AliasHelpBtn.Inline(), *RecallHelpBtn.Inline()},
+			{*RecordHelpBtn.Inline(), *DelrecHelpBtn.Inline()},
 			{*RegHelpBtn.Inline(), *UnregHelpBtn.Inline()},
 			{*SetHelpBtn.Inline(), *PermHelpBtn.Inline()},
 		},
