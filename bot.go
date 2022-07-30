@@ -1059,9 +1059,21 @@ func QueryHandler(ctx tele.Context) error {
 
 	if is_int {
 		user, data_err := Data.FindByID(id)
+		more_users, data_err2 := Data.Filter(bson.D{{Key: "alias_ids", Value: id}})
+
+		if data_err == nil || data_err2 == nil {
+			users = make([]User, 0, len(users)+len(more_users))
+		}
 
 		if data_err == nil {
-			users = []User{user}
+			users = append(users, user)
+		}
+
+		if data_err2 == nil {
+			for _, m := range more_users {
+				m.Description = "This user has the ID as an alias."
+				users = append(users, m)
+			}
 		}
 
 	} else {
@@ -1084,8 +1096,9 @@ func QueryHandler(ctx tele.Context) error {
 			}
 
 			results = append(results, &tele.ArticleResult{
-				Title: BoolToStr(name != "", name, fmt.Sprintf("%d", id)),
-				Text:  DisplayUser(&u),
+				Title:       BoolToStr(name != "", name, fmt.Sprintf("%d", id)),
+				Text:        DisplayUser(&u),
+				Description: u.Description,
 			})
 		}
 	}
