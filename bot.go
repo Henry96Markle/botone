@@ -43,9 +43,93 @@ const (
 	BTN_CANCEL_OPERATOR_CONFIRMATION = "cancelBtn"
 	BTN_CONFIRM_OPERATOR             = "confirmOperatorBtn"
 
+	// Help strings
+
+	CREDITS = "<b>Botone v%s</b>\n\nCreator: <b>Henry Markle</b>\n" +
+		"Powered by: <b>Go v1.18</b> & <b>MongoDB</b>\n\n" +
+		"Code dependencies:\n\n\t" +
+		"<b>Telebot</b> by <a href=\"https://github.com/tucnak\">tucnak</a>\n\t" +
+		"<b>Mongo Go Driver</b> by <a href=\"https://www.mongodb.com/\">MongoDB</a>"
+
+	HELP_MAIN = "Don't you hate it when poeple constantly change their names, usernames, and even their Telegram IDs, " +
+		"and then you tend to forget who they were and what they did?\n" +
+		"With Botone, you can keep track of their identities and record " +
+		"their most significant actions, so you don't have to worry about forgetting and feeling like " +
+		"everyone on telegram is the same person.\n\n" +
+		"Click on the buttons below, to learn each command."
+
+	HELP_RECALL = "Recall information about a person who's registered before. " +
+		"You can use IDs, usernames, or names.\n\nSyntax:\n\n" +
+		"- /recall <ID/reply-to-message>\n\n" +
+		"- /recall name <name>\n\nExamples:\n\n" +
+		"- /recall username <username>\n\n" +
+		"/recall 69696969\n/recall name Miles Edgeworth"
+	HELP_REG = "Register new users.\n\nSyntax:\n\n/reg <ID/reply-to-message> [description]"
+
+	HELP_UNREG = "There are some people you just want to forget.\n" +
+		"Unregister and delete them from the database.\n\nSyntax:\n\n" +
+		"- /unreg <ID/reply-to-message>"
+
+	HELP_HELP = "Learn each command's syntax by typing /help followed by the name of the command.\n\nSyntax:\n\n" +
+		"- /help\n- /help <command>"
+
+	HELP_RECORD = "Write down what the user did under a certain category.\n\n" +
+		"Syntax:\n\n/record <ID/reply-to-message> <category> [note1; note2; note3; ..]\n\nExample:\n\n" +
+		"/record 69696969 bans shared a pirated movie; he blamed me for eating his sandwish"
+
+	HELP_SET = "Set description to a user record.\n" +
+		"Syntax:\n\n/set <ID/reply-to-message> <description>\n\n" +
+		"Example:\n\n/set 6969669 My brother-in-law.\n"
+
+	HELP_PERM = "You can allow others to use your bot, but " +
+		"you may not want to let them have complete access. Therefore, the bot comes with a permission system " +
+		"that allows you to control how much access you want to give, by granting certain people certain permissions.\n\n" +
+		"Permissions are represented as numbers. The higher the number, the more a user can access.\n\n" +
+		"The available permissions are:\n\n" +
+		"0 - No access\n" +
+		"1 - Read-only\n" +
+		"2 - Read/Write\n" +
+		"3 - Operator\n" +
+		"4 - Owner\n\n" +
+		"Each command requires at minimum permission level as follows:\n\n" +
+		"%s" +
+		"\n\nBy default, every newly registered user has permission level 0, " +
+		"which means that they can't interract with the bot at all.\n\n" +
+		"You can increase the amount of control they have, with the /perm command.\n\n" +
+		"By granting them permission level 1, you only allow them to use the /recall command and inline queries.\n\n" +
+		"Permission level 2 unlocks the rest of the commands for the user, except for the /perm.\n\n" +
+		"Permission level 3 is the operator eccess permission. Users with this permission can grant or revoke others' " +
+		"permissions, but they obviously can't grant others permission level 3. Only the owner of the bot can do that.\n\n" +
+		"Syntax:\n\n" +
+		"- /perm <ID/reply-to-message>\n- /perm <ID/reply-to-message> set <permission-level>"
+
+	HELP_ALIAS = "Add more IDs, names, or usernames that belong to the same person.\n\nSyntax:\n\n" +
+		"/alias <ID/reply-to-message> <add/remove> <id/name/username> <value1>; <value2> ..\n\nExample:\n\n" +
+		"/alias 69696969 add name Henry Markle; Steward; Rose Smith"
+
+	// Messages
+
+	MSG_NO_MATCH          = "No match"
+	MSG_ID_REQUIRED       = "ID required"
+	MSG_ID_NOT_FOUND      = "ID not found"
+	MSG_INVALID_ID        = "Invalid ID"
+	MSG_INSUFFICIENT_ARGS = "Insufficient arguments"
+	MSG_COULD_NOT_PERFORM = "Could not perform this action"
+	MSG_UNAUTHORIZED      = "You're unauthorized to perform this action"
+
+	ERR_FMT_ADD    = "error adding ID: %v"
+	ERR_FMT_QUERY  = "error finding ID: %v"
+	ERR_FMT_DELETE = "error deleting ID: %v"
+	ERR_FMT_UPDATE = "error updating ID: %v"
+	ERR_FMT_PARSE  = "error parsing string: %v"
+
+	// Formatted messages
+
+	//
+
 	BUFF_FILE_PATH = "./b.txt"
 
-	VERSION = "0.0.5"
+	VERSION = "0.59"
 )
 
 var (
@@ -68,23 +152,23 @@ var (
 	}
 
 	Permissions = map[string]int{
+		CMD_RECALL:  1,
+		CMD_HELP:    1,
+		CMD_CREDITS: 1,
 		CMD_SET:     2,
 		CMD_ALIAS:   2,
 		CMD_RECORD:  2,
 		CMD_UNREG:   2,
 		CMD_REG:     2,
-		CMD_RECALL:  1,
-		CMD_HELP:    1,
-		CMD_CREDITS: 1,
 		CMD_PERM:    3,
 
-		BTN_RECORD_HELP:                  2,
-		BTN_ALIAS_HELP:                   2,
+		BTN_UPLOAD_RESULT:                1,
 		BTN_BACK_TO_HELP:                 1,
 		BTN_RECALL_HELP:                  1,
+		BTN_RECORD_HELP:                  2,
+		BTN_ALIAS_HELP:                   2,
 		BTN_REG_HELP:                     2,
 		BTN_UNREG_HELP:                   2,
-		BTN_UPLOAD_RESULT:                1,
 		BTN_SET_HELP:                     2,
 		BTN_DELETE_ENTRY:                 2,
 		BTN_PERM_HELP:                    3,
@@ -96,57 +180,25 @@ var (
 	}
 
 	CommandSyntax = map[string]string{
-		CMD_REG: "Register new users.\n\nSyntax:\n\n/reg <ID/reply-to-message>",
+		CMD_REG: HELP_REG,
 
-		CMD_RECORD: "Write down what the user did under a certain category.\n\n" +
-			"Syntax:\n\n/record <ID/reply-to-message> <category> [note1; note2; note3; ..]\n\nExample:\n\n" +
-			"/record 69696969 bans shared a pirated movie; he blamed me for eating his sandwish",
+		CMD_RECORD: HELP_RECORD,
 
-		CMD_RECALL: "Recall information about a person who's registered before.\n\nSyntax:\n\n" +
-			"- /recall <ID/reply-to-message>\n\n" +
-			"- /recall <name/username> <value>\n\nExamples:\n\n" +
-			"/recall 69696969\n/recall name Miles Edgeworth",
+		CMD_RECALL: HELP_RECALL,
 
-		CMD_ALIAS: "Add more IDs, names, or usernames that belong to the same person.\n\nSyntax:\n\n" +
-			"/alias <ID/reply-to-message> <add/remove> <id/name/username> <value1>; <value2> ..\n\nExample:\n\n" +
-			"/alias 69696969 add name Henry Markle; Steward; Rose Smith",
+		CMD_ALIAS: CMD_ALIAS,
 
-		CMD_HELP: "Learn each command's syntax by typing /help followed by the name of the command.\n\nSyntax:\n\n" +
-			"- /help\n- /help <command>",
+		CMD_HELP: CMD_HELP,
 
-		CMD_UNREG: "There are some people you just want to forget.\n" +
-			"Unregister and delete them from the database.\n\nSyntax:\n\n" +
-			"- /unreg <ID/reply-to-message>",
-		CMD_SET: "Set description to a user record.\n" +
-			"Syntax:\n\n/set <ID/reply-to-message> <description>\n\n" +
-			"Example:\n\n/set 6969669 My brother-in-law.\n",
-		CMD_PERM: "You can allow others to use your bot, but " +
-			"you may not want to let them have complete access. Therefore, the bot comes with a permission system " +
-			"that allows you to control how much access you want to give, by granting certain people certain permissions.\n\n" +
-			"Permissions are represented as numbers. The higher the number, the more a user can access.\n\n" +
-			"The available permissions are:\n\n" +
-			"0 - No access\n" +
-			"1 - Read-only\n" +
-			"2 - Read/Write\n" +
-			"3 - Operator\n" +
-			"4 - Owner\n\n" +
-			"Each command requires at minimum permission level as follows:\n\n" +
-			strings.Join(MaptoSlice(Permissions, func(k string, v int) (string, error) {
-				if !strings.HasSuffix(k, "Btn") && k != "\aquery" {
-					return fmt.Sprintf("/%s: %d", k, v), nil
-				} else {
-					return "", errors.New("must be a command")
-				}
-			}), "\n") +
-			"\n\nBy default, every newly registered user has permission level 0, " +
-			"which means that they can't interract with the bot at all.\n\n" +
-			"You can increase the amount of control they have, with the /perm command.\n\n" +
-			"By granting them permission level 1, you only allow them to use the /recall command and inline queries.\n\n" +
-			"Permission level 2 unlocks the rest of the commands for the user, except for the /perm.\n\n" +
-			"Permission level 3 is the operator eccess permission. Users with this permission can grant or revoke others' " +
-			"permissions, but they obviously can't grant others permission level 3. Only the owner of the bot can do that.\n\n" +
-			"Syntax:\n\n" +
-			"- /perm <ID/reply-to-message>\n- /perm <ID/reply-to-message> set <permission-level>",
+		CMD_UNREG: CMD_UNREG,
+		CMD_SET:   HELP_SET,
+		CMD_PERM: fmt.Sprintf(HELP_PERM, strings.Join(MaptoSlice(Permissions, func(k string, v int) (string, error) {
+			if !strings.HasSuffix(k, "Btn") && k != "\aquery" {
+				return fmt.Sprintf("/%s: %d", k, v), nil
+			} else {
+				return "", errors.New("must be a command")
+			}
+		}), "\n")),
 	}
 
 	StringBuffer = ""
@@ -320,11 +372,7 @@ var (
 func CreditsHandler(ctx tele.Context) error {
 	return ctx.Reply(
 		fmt.Sprintf(
-			"<b>Botone v%s</b>\n\nCreator: <b>Henry Markle</b>\n"+
-				"Powered by: <b>Go v1.18</b> & <b>MongoDB</b>\n\n"+
-				"Code dependencies:\n\n\t"+
-				"<b>Telebot</b> by <a href=\"https://github.com/tucnak\">tucnak</a>\n\t"+
-				"<b>Mongo Go Driver</b> by <a href=\"https://www.mongodb.com/\">MongoDB</a>",
+			CREDITS,
 			VERSION,
 		),
 		CreditsKeyboard, tele.ModeHTML, tele.NoPreview,
@@ -339,12 +387,7 @@ func HelpHandler(ctx tele.Context) error {
 	if len(ctx.Args()) == 0 {
 		if ctx.Chat().ID == ctx.Sender().ID {
 			return ctx.Reply(
-				"Don't you hate it when poeple constantly change their names, usernames, and even their Telegram IDs, "+
-					"and then you tend to forget who they were and what they did?\n"+
-					"With Botone, you can keep track of their identities and record "+
-					"their most significant actions, so you don't have to worry about forgetting and feeling like "+
-					"everyone on telegram is the same person.\n\n"+
-					"Click on the buttons below, to learn each command.",
+				HELP_MAIN,
 				HelpMainPageKeyboard, tele.ModeHTML,
 			)
 		} else {
@@ -384,17 +427,19 @@ func RecallHandler(ctx tele.Context) error {
 		length = len(ctx.Args())
 	)
 
+	// Acquire id and/or field, depending on args length
+
 	switch length {
 	case 0:
 		if ctx.Message().ReplyTo == nil || ctx.Message().ReplyTo.Sender == nil {
-			return ctx.Reply("ID required.")
+			return ctx.Reply(MSG_ID_REQUIRED)
 		}
 
 		id = ctx.Message().ReplyTo.Sender.ID
 		field = "id"
 	case 1:
 		if id, parse_err = strconv.ParseInt(ctx.Args()[0], 0, 64); parse_err != nil {
-			return ctx.Reply("Invalid ID.")
+			return ctx.Reply(MSG_INVALID_ID)
 		}
 
 		field = "id"
@@ -410,13 +455,15 @@ func RecallHandler(ctx tele.Context) error {
 		}
 	}
 
+	// Query user(s), based on field
+
 	switch field {
 	case "id":
 		var user User
 		user, data_err = Data.FindByID(id)
 
 		if data_err != nil {
-			log.Printf("error finding user: %v\n", data_err)
+			log.Printf(ERR_FMT_QUERY+"\n", data_err)
 		} else {
 			users = []User{user}
 		}
@@ -437,8 +484,10 @@ func RecallHandler(ctx tele.Context) error {
 	}
 
 	if len(users) == 0 {
-		return ctx.Reply("No users were found.")
+		// If there's no match
+		return ctx.Reply(MSG_NO_MATCH)
 	} else if len(users) == 1 {
+		// If there's exactly one match
 		d := DisplayUser(&users[0])
 
 		if len(d) > 4096 {
@@ -452,8 +501,11 @@ func RecallHandler(ctx tele.Context) error {
 
 		sender, _ := Data.FindByID(ctx.Sender().ID)
 
+		// If the sender has read/write permissions, and was in PM, and
+		// the queried user wasn't the owner or an operator, a delete buttons shows up.
 		if (sender.Permission >= 2) &&
 			(ctx.Chat().ID == ctx.Sender().ID) &&
+			(users[0].Permission < 3) &&
 			(users[0].TelegramID != Config.OwnerTelegramID) {
 
 			keyboard = &tele.ReplyMarkup{
@@ -465,6 +517,8 @@ func RecallHandler(ctx tele.Context) error {
 
 		return ctx.Reply(d, keyboard, tele.ModeHTML)
 	} else {
+		// If there's more than one match
+
 		str := make([]string, 0, len(users))
 
 		for _, u := range users {
@@ -493,12 +547,7 @@ func PermHelpBtnHandler(c tele.Context) error {
 
 func BackToHelpBtnHandler(ctx tele.Context) error {
 	return ctx.Edit(
-		"Don't you hate it when poeple constantly change their names, usernames, and even their Telegram IDs, "+
-			"and then you tend to forget who they were and what they did?\n"+
-			"With Botone, you can keep track of their identities and record "+
-			"their most significant actions, so you don't have to worry about forgetting and feeling like "+
-			"everyone on telegram is the same person.\n\n"+
-			"Click on the buttons below, to learn each command.",
+		HELP_MAIN,
 		HelpMainPageKeyboard, tele.ModeHTML,
 	)
 }
@@ -952,13 +1001,30 @@ func UnregHandler(ctx tele.Context) error {
 		}
 	}
 
+	// You can't remove the owner
+
 	if id == Config.OwnerTelegramID {
 		return ctx.Reply("You can't remove the owner's ID.")
 	}
 
-	if _, e := Data.RemoveByID(id); e != nil {
-		log.Printf("error removing a user by ID: %v\n", id)
-		return ctx.Reply("User not found.")
+	// You can't remove a user that's not registered
+
+	u, ee := Data.FindByID(id)
+
+	if ee != nil {
+		log.Printf(ERR_FMT_QUERY+"\n", ee)
+		return ctx.Reply(MSG_ID_NOT_FOUND)
+	}
+
+	// You can't remove a user with permission level 3, unless you're the owner
+
+	if u.Permission >= 3 && (ctx.Sender().ID != Config.OwnerTelegramID) {
+		return ctx.Reply("You need to be the owner, to remove an operator.")
+	}
+
+	if c, e := Data.RemoveByID(id); e != nil || c == 0 {
+		log.Printf(ERR_FMT_DELETE+"\n", id)
+		return ctx.Reply(MSG_ID_NOT_FOUND)
 	} else {
 
 		// logging

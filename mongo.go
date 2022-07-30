@@ -98,12 +98,16 @@ func (d Database) GetAll() (records []User, err error) {
 }
 
 // Looks up using only tg_id field.
-func (d Database) FindByID(id int64) (user User, err error) {
-	user = User{}
+func (d Database) FindByID(id int64) (User, error) {
+	user := User{}
 
-	err = d.Collection().FindOne(context.TODO(), bson.D{{Key: "tg_id", Value: id}}).Decode(&user)
+	err := d.Collection().FindOne(context.TODO(), bson.D{{Key: "tg_id", Value: id}}).Decode(&user)
 
-	return
+	if err != nil {
+		return User{}, err
+	} else {
+		return user, nil
+	}
 }
 
 func (d Database) Add(users ...any) error {
