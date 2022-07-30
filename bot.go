@@ -426,7 +426,9 @@ func AliasHandler(ctx tele.Context) error {
 		})
 
 		if !remove {
-			filtered_values = Undupe(mapped, user.AliasIDs)
+			to_check := user.AliasIDs
+			to_check = append(to_check, user.TelegramID)
+			filtered_values = Undupe(mapped, to_check)
 		} else {
 			filtered_values = mapped
 		}
