@@ -703,16 +703,17 @@ func QueryHandler(ctx tele.Context) error {
 		data_err error
 	)
 
-	// Determine whether the strings is an ID, a name, or a username
+	// Determine whether the strings is an ID, a name, or a username.
 
 	str, id, is_int = Parse(ctx.Query().Text)
 
 	if is_int {
 		user, data_err := Data.FindByID(id)
 		more_users, data_err2 := Data.Filter(bson.D{{Key: "alias_ids", Value: id}})
+		user_names, data_err3 := Data.Filter(bson.D{{Key: "names", Value: ctx.Query().Text}})
 
-		if data_err == nil || data_err2 == nil {
-			users = make([]User, 0, len(users)+len(more_users))
+		if data_err == nil || data_err2 == nil || data_err3 == nil {
+			users = make([]User, 0, len(users)+len(more_users)+len(user_names))
 		}
 
 		if data_err == nil {
@@ -724,6 +725,10 @@ func QueryHandler(ctx tele.Context) error {
 				m.Description = "This user has the ID as an alias."
 				users = append(users, m)
 			}
+		}
+
+		if data_err3 == nil {
+			users = append(users, user_names...)
 		}
 
 	} else {
