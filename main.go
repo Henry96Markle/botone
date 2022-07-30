@@ -150,7 +150,7 @@ func init() {
 		}
 	})
 
-	Bot.Handle(tele.OnQuery, QueryHandler) // <- Not working
+	Bot.Handle(tele.OnQuery, QueryHandler)
 
 	Bot.Handle("/start", func(ctx tele.Context) error {
 		handler, ok := CommandMap[ctx.Message().Payload]
