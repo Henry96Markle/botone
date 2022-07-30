@@ -1053,6 +1053,8 @@ func QueryHandler(ctx tele.Context) error {
 		data_err error
 	)
 
+	// Determine whether the strings is an ID, a name, or a username
+
 	str, id, is_int = Parse(ctx.Query().Text)
 
 	if is_int {
@@ -1127,13 +1129,13 @@ func SetHandler(c tele.Context) error {
 
 	switch len(c.Args()) {
 	case 0:
-		return c.Reply("Insufficient arguments.")
+		return c.Reply(MSG_INSUFFICIENT_ARGS)
 	case 1:
 		// /set <reply-to-message> <description>
 		if c.Message().ReplyTo != nil && c.Message().ReplyTo.Sender != nil {
 			id = c.Message().ReplyTo.Sender.ID
 		} else {
-			return c.Reply("Insufficient arguments.")
+			return c.Reply(MSG_INSUFFICIENT_ARGS)
 		}
 
 		desc = c.Args()[0]
@@ -1158,8 +1160,8 @@ func SetHandler(c tele.Context) error {
 	user, data_err = Data.FindByID(id)
 
 	if data_err != nil {
-		log.Printf("error when querying user ID: %v\n", data_err)
-		return c.Reply("User not found.")
+		log.Printf(ERR_FMT_QUERY+"\n", data_err)
+		return c.Reply(MSG_ID_NOT_FOUND)
 	}
 
 	user.Description = desc
@@ -1167,8 +1169,8 @@ func SetHandler(c tele.Context) error {
 	err := Data.ReplaceByID(id, user)
 
 	if err != nil {
-		log.Printf("error when replacing user: %v\n", err)
-		return c.Reply("Could not perform this operation.")
+		log.Printf(ERR_FMT_UPDATE+"\n", err)
+		return c.Reply(MSG_COULD_NOT_PERFORM)
 	}
 
 	// logging
@@ -1219,7 +1221,7 @@ func PermHandler(c tele.Context) error {
 		if c.Message().ReplyTo != nil && c.Message().ReplyTo.Sender != nil {
 			id = c.Message().ReplyTo.Sender.ID
 		} else {
-			return c.Reply("ID required.")
+			return c.Reply(MSG_ID_REQUIRED)
 		}
 
 	case 1:
@@ -1231,7 +1233,7 @@ func PermHandler(c tele.Context) error {
 		if c.Message().ReplyTo != nil && c.Message().ReplyTo.Sender != nil {
 			id = c.Message().ReplyTo.Sender.ID
 		} else {
-			return c.Reply("ID required.")
+			return c.Reply(MSG_ID_REQUIRED)
 		}
 
 		if c.Args()[0] == "set" {
@@ -1254,7 +1256,7 @@ func PermHandler(c tele.Context) error {
 	}
 
 	if parse_err != nil {
-		return c.Reply("Invalid ID.")
+		return c.Reply(MSG_INVALID_ID)
 	}
 
 	if perm_parse_err != nil {
@@ -1265,8 +1267,8 @@ func PermHandler(c tele.Context) error {
 
 	if set {
 		if data_err != nil {
-			log.Printf("error when querying a user by ID: %v\n", data_err)
-			return c.Reply("User not found.")
+			log.Printf(ERR_FMT_QUERY+"\n", data_err)
+			return c.Reply(MSG_ID_NOT_FOUND)
 		}
 
 		if u.TelegramID == Config.OwnerTelegramID {
@@ -1293,8 +1295,8 @@ func PermHandler(c tele.Context) error {
 			err := Data.ReplaceByID(id, u)
 
 			if err != nil {
-				log.Printf("error updating user: %v\n", err)
-				return c.Reply("Could not perform this action.")
+				log.Printf(ERR_FMT_UPDATE+"\n", err)
+				return c.Reply(MSG_COULD_NOT_PERFORM)
 			}
 
 			// logging
@@ -1399,8 +1401,8 @@ func SetPermBtnHandler(c tele.Context) error {
 	user, data_err = Data.FindByID(id)
 
 	if data_err != nil {
-		log.Printf("error querying ID: %v\n", data_err)
-		return c.Edit("User not found.")
+		log.Printf(ERR_FMT_QUERY+"\n", data_err)
+		return c.Edit(MSG_ID_NOT_FOUND)
 	}
 
 	user.Permission = perm
@@ -1409,7 +1411,7 @@ func SetPermBtnHandler(c tele.Context) error {
 
 	if err != nil {
 		log.Printf("error updating user permission: %v\n", err)
-		return c.Edit("Could not perform this action.")
+		return c.Edit(MSG_COULD_NOT_PERFORM)
 	} else {
 
 		// logging
@@ -1443,8 +1445,8 @@ func DeleteEntryBtnHandler(c tele.Context) error {
 	id, parse_err = strconv.ParseInt(c.Callback().Data, 0, 64)
 
 	if parse_err != nil {
-		log.Printf("error parsing ID: %v\n", parse_err)
-		return c.Edit("Could not perform this action: Invalid ID.")
+		log.Printf(ERR_FMT_PARSE+"\n", parse_err)
+		return c.Edit(MSG_INVALID_ID)
 	}
 
 	if id == Config.OwnerTelegramID {
@@ -1454,12 +1456,12 @@ func DeleteEntryBtnHandler(c tele.Context) error {
 	count, err = Data.RemoveByID(id)
 
 	if err != nil {
-		log.Printf("error removing ID: %v\n", err)
+		log.Printf(ERR_FMT_DELETE+"\n", err)
 		return c.Edit("Could not perform this action: Database error.")
 	}
 
 	if count == 0 {
-		return c.Edit("ID not found.")
+		return c.Edit(MSG_ID_NOT_FOUND)
 	} else {
 
 		// logging
