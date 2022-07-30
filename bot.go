@@ -186,11 +186,11 @@ var (
 
 		CMD_RECALL: HELP_RECALL,
 
-		CMD_ALIAS: CMD_ALIAS,
+		CMD_ALIAS: HELP_ALIAS,
 
-		CMD_HELP: CMD_HELP,
+		CMD_HELP: HELP_HELP,
 
-		CMD_UNREG: CMD_UNREG,
+		CMD_UNREG: HELP_UNREG,
 		CMD_SET:   HELP_SET,
 		CMD_PERM: fmt.Sprintf(HELP_PERM, strings.Join(MaptoSlice(Permissions, func(k string, v int) (string, error) {
 			if !strings.HasSuffix(k, "Btn") && k != "\aquery" {
