@@ -108,7 +108,7 @@ func DisplayUser(user *User) string {
 	perm := PermissionNames[user.Permission]
 
 	return fmt.Sprintf(
-		"<b>Name:</b> %s\n<b>Username:</b> %s\n<b>ID:</b> <code>%d</code>\n<b>Permission Level:</b> %s%s%s%s%s%s",
+		"<b>Name:</b> %s\n<b>Username:</b> <code>%s</code>\n<b>ID:</b> <code>%d</code>\n<b>Permission Level:</b> %s%s%s%s%s%s",
 		BoolToStr(len(user.Names) > 0, name, ""),
 		BoolToStr(len(user.Usernames) > 0, username, ""),
 		user.TelegramID,
