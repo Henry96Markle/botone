@@ -155,7 +155,7 @@ var (
 
 	DeleteEntryBtn = &tele.Btn{
 		Unique: BTN_DELETE_ENTRY,
-		Text:   "Delete entry",
+		Text:   "Delete Entry",
 	}
 
 	SetPermBtn = &tele.Btn{
