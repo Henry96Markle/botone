@@ -97,8 +97,8 @@ const (
 		"which means that they can't interract with the bot at all.\n\n" +
 		"You can increase the amount of control they have, with the /perm command.\n\n" +
 		"By granting them permission level 1, you only allow them to use the /recall command and inline queries.\n\n" +
-		"Permission level 2 unlocks the rest of the commands for the user, except for the /perm.\n\n" +
-		"Permission level 3 is the operator eccess permission. Users with this permission can grant or revoke others' " +
+		"Permission level 2 unlocks the rest of the commands for the user, except for /perm.\n\n" +
+		"Permission level 3 is the operator eccess permission. Operators can grant or revoke others' " +
 		"permissions, but they obviously can't grant others permission level 3. Only the owner of the bot can do that.\n\n" +
 		"Syntax:\n\n" +
 		"- /perm <ID/reply-to-message>\n- /perm <ID/reply-to-message> set <permission-level>"
@@ -177,6 +177,14 @@ var (
 		BTN_CONFIRM_OPERATOR:             4,
 
 		tele.OnQuery: 1,
+	}
+
+	PermissionNames = map[int]string{
+		0: "None",
+		1: "Read-only",
+		2: "Read/Write",
+		3: "Operator",
+		4: "Owner",
 	}
 
 	CommandSyntax = map[string]string{
@@ -553,8 +561,7 @@ func BackToHelpBtnHandler(ctx tele.Context) error {
 }
 
 func RegHelpBtnHandler(ctx tele.Context) error {
-	return ctx.Edit("Register new users.\n\nSyntax:\n\n\t"+
-		"- /reg <ID/reply-to-message>", BackToHelpKeyboard)
+	return ctx.Edit(HELP_REG, BackToHelpKeyboard)
 }
 
 func CancelOperatorConfirmationBtnHandler(c tele.Context) error {

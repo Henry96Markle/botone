@@ -105,11 +105,14 @@ func DisplayUser(user *User) string {
 		records = append(records, fmt.Sprintf("<b>%s</b>:\n\t%s", k, strings.Join(RecordStrArr("\t", v...), "\n\n\t")))
 	}
 
+	perm := PermissionNames[user.Permission]
+
 	return fmt.Sprintf(
-		"<b>Name:</b> %s\n<b>Username:</b> %s\n<b>ID:</b> <code>%d</code>%s%s%s%s%s",
+		"<b>Name:</b> %s\n<b>Username:</b> %s\n<b>ID:</b> <code>%d</code>\n<b>Permission Level:</b> %s%s%s%s%s%s",
 		BoolToStr(len(user.Names) > 0, name, ""),
 		BoolToStr(len(user.Usernames) > 0, username, ""),
 		user.TelegramID,
+		perm,
 		BoolToStr(len(user.Description) > 0, "\n\n"+user.Description, ""),
 		BoolToStr(
 			len(user.Names) > 1, // The the last element in user.Names slice won't be displayed here.
